@@ -6,9 +6,16 @@ __pycache__/
 .ipynb_checkpoints/
 .DS_Store
 
-# local planning / assistant files
+reports/results.csv
+reports/preds/
+
+# local planning / assistant / agent files
 CONTEXT.md
 TASKS.md
 WORKFLOW.md
 CLAUDE.md
 .claude/
+.gemini/
+.agents/
+AGENTS.md
+GEMINI.md
