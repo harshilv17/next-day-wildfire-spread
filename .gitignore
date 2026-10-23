@@ -1,0 +1,14 @@
+data/
+.venv/
+*.npz
+*.parquet
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+
+# local planning / assistant files
+CONTEXT.md
+TASKS.md
+WORKFLOW.md
+CLAUDE.md
+.claude/
