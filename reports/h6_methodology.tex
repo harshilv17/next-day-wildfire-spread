@@ -1,0 +1,177 @@
+% H6 draft: Methodology + Feature Engineering (Harshil)
+% Paste into the IEEE Overleaf project. Needs \usepackage{amsmath}.
+
+\section{Methodology}
+
+\subsection{Problem formulation}
+Each sample of the Next Day Wildfire Spread dataset~\cite{huot2022} is a $64\times64$ patch at
+1\,km resolution with 12 input channels observed on day $t$ (11 environmental channels plus the
+active fire mask \texttt{PrevFireMask}) and a target fire mask \texttt{FireMask} on day $t+1$.
+We treat the task as per-pixel binary classification: for every pixel, predict the probability
+that it is burning on day $t+1$ using only information available on day $t$.
+Pixels with label $-1$ (unknown, e.g.\ cloud cover) are excluded from training and from every metric.
+
+\subsection{Data splits}
+We use the official train/eval/test split released with the dataset
+(14\,979 / 1\,877 / 1\,689 patches). Huot et al.\ assign every calendar week between 2012 and 2020
+at random to train, eval or test in an 8:1:1 ratio and leave a one-day buffer between weeks, so
+the splits are separated in time and a fire's day-$t$/day-$t{+}1$ pair never straddles two splits.
+All features are computed inside a single patch, so no information crosses split boundaries.
+The eval split is used only for early stopping and hyperparameter selection;
+the test split is scored once per final model.
+
+\subsection{Preprocessing}
+The TFRecords are parsed directly from the protobuf wire format (no TensorFlow dependency) into
+arrays of shape $(N,12,64,64)$. The raw export contains physically impossible values,
+so before feature construction each affected channel is clipped to fixed physical bounds
+(Table~\ref{tab:clip}). Wind direction is circular, so instead of clipping it is wrapped
+($\theta \bmod 360$; 0.23\% of train pixels lie outside $[0, 360)$). The bounds are constants, not statistics fitted on the data, so clipping
+introduces no leakage. No normalisation is applied for the tree models, which are invariant to
+monotone rescaling of individual features.
+
+\begin{table}[t]
+\centering
+\caption{Physical clipping of raw channels (train split shares of affected pixels).}
+\label{tab:clip}
+\begin{tabular}{lll}
+\hline
+Channel & Bounds & Affected pixels \\
+\hline
+\texttt{vs} (wind speed) & $\geq 0$ m/s & $<0.01$\% \\
+\texttt{tmmn}, \texttt{tmmx} & $[253.15, 330]$ K & 0.36\% \\
+\texttt{sph} & $\geq 0$ & $<0.01$\% \\
+\texttt{pr} & $\geq 0$ mm & 9.78\% \\
+\texttt{erc} & $\geq 0$ & 0.03\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Pixel tables and class imbalance}
+Fire pixels are rare: on the training split only 1.1\% of labelled pixels burn on day $t+1$
+(a 90:1 imbalance). Each patch is flattened into one row per pixel. For the training table we
+keep every fire pixel and an independent random sample of non-fire pixels with probability chosen
+to give a 5:1 non-fire to fire ratio (fixed seed), giving 3.95\,M rows.
+Uniform negative subsampling shifts the predicted base rate but not the ranking of pixels,
+so ranking metrics on the untouched eval and test splits remain valid.
+The remaining imbalance is handled by class weighting computed from the training table only:
+\texttt{scale\_pos\_weight} $= N_{\text{neg}}/N_{\text{pos}} = 5$.
+Eval (7.69\,M pixels) and test (6.92\,M pixels) keep every pixel in patch order, so predictions
+reshape directly into $64\times64$ probability maps.
+
+\subsection{Models and tuning}
+We train XGBoost~\cite{chen2016} and LightGBM~\cite{ke2017} on all 35 features (12 raw plus 23
+engineered). For each family we run a random search of 20 configurations over the space in
+Table~\ref{tab:space}. Every configuration grows up to 1\,000 trees with early stopping
+(patience 50) on a fixed random sample of 1\,M labelled eval pixels, and is then scored by
+PR AUC on the full eval split. The best configuration per family is evaluated once on test.
+
+\begin{table}[t]
+\centering
+\caption{Random search spaces (20 configurations each).}
+\label{tab:space}
+\begin{tabular}{lll}
+\hline
+Model & Hyperparameter & Range \\
+\hline
+XGBoost & \texttt{max\_depth} & \{4, 6, 8, 10\} \\
+ & \texttt{min\_child\_weight} & \{1, 5, 20, 100\} \\
+ & \texttt{gamma} & \{0, 0.1, 1\} \\
+LightGBM & \texttt{num\_leaves} & \{15, 31, 63, 127, 255\} \\
+ & \texttt{min\_child\_samples} & \{20, 100, 500, 2000\} \\
+ & \texttt{min\_split\_gain} & \{0, 0.1, 1\} \\
+Both & \texttt{learning\_rate} & log-uniform $[0.02, 0.3]$ \\
+ & \texttt{subsample} & uniform $[0.6, 1]$ \\
+ & \texttt{colsample\_bytree} & uniform $[0.5, 1]$ \\
+ & \texttt{reg\_lambda} & log-uniform $[0.1, 10]$ \\
+\hline
+\end{tabular}
+\end{table}
+
+Eval PR AUC varied little across configurations (XGBoost 0.200--0.208, LightGBM 0.190--0.202),
+so the results are not sensitive to the exact hyperparameters. The selected XGBoost uses depth 6,
+learning rate 0.026 and 245 trees; the selected LightGBM uses 31 leaves, at least 2\,000 samples
+per leaf, learning rate 0.13 and 146 trees. Full configurations are in
+\texttt{reports/best\_params.json}.
+
+\subsection{Evaluation}
+Accuracy is uninformative at 1\% prevalence, so every model is scored with the same function on
+the same pixels: PR AUC (average precision), ROC AUC, and recall at 1\% and 5\% false positive
+rate, which need no decision threshold. Precision, recall and F1 are reported at the threshold
+that maximises F1 on the eval split, applied unchanged to test; choosing it on test would
+overstate F1. The test-optimal F1 is kept only as an upper bound.
+
+\section{Feature Engineering}
+Raw channels describe each pixel in isolation, but fire spread depends on where the fire is,
+which way the wind blows relative to it, how dry the air and fuel are, and the local terrain.
+We engineer 23 features in five groups (Table~\ref{tab:features}); the groups are reused for the
+ablation study. Unless stated, local statistics use a $k\times k$ window with replicated edges,
+\texttt{PrevFireMask} $=-1$ is treated as no fire, and wind direction $\theta$ is the direction
+the wind blows \emph{from} (degrees clockwise from north).
+
+\textbf{Fire neighbourhood.} Spread happens at the fire front, so we measure burning density
+around each pixel at three scales, the distance to the nearest burning pixel, and the fraction of
+the patch already burning. Three wind-aware features look for fire $k \in \{2,4,8\}$ pixels upwind (8 because 40\% of
+next-day fire pixels lie more than 5\,km from day-$t$ fire, per our EDA), and an
+alignment score is the cosine between the upwind direction and the direction to the nearest fire
+($+1$ when the wind pushes the nearest fire toward the pixel).
+
+\textbf{Weather.} Wind direction is circular, so it is replaced by $u$/$v$ components.
+Specific humidity is converted to vapour pressure $e = qp/(0.622+0.378q)$, with surface pressure
+$p$ from elevation (FAO-56). Saturation vapour pressure at the daily maximum temperature,
+$e_s = 0.6108\exp\!\big(17.27T/(T+237.3)\big)$ kPa, gives the vapour pressure deficit
+$e_s - e$ and minimum relative humidity $e/e_s$, both direct measures of atmospheric drying.
+We also add diurnal temperature range and the interaction \texttt{erc}$\times$wind speed.
+
+\textbf{Vegetation, terrain, human.} NDVI (stored $\times10^4$) is summarised by its local mean,
+standard deviation and anomaly. Terrain adds slope and aspect from the elevation gradient and
+elevation relative to the $9\times9$ neighbourhood (ridges vs.\ valleys). Population is
+smoothed over $9\times9$ pixels as a proxy for settlement proximity and suppression effort.
+
+\begin{table*}[t]
+\centering
+\caption{Engineered features. AUC: univariate ROC AUC on the eval split, $\max(a, 1-a)$,
+sign gives direction of association. Raw channel shown for comparison.}
+\label{tab:features}
+\begin{tabular}{llll}
+\hline
+Group & Feature & Definition & AUC \\
+\hline
+Fire & \texttt{PrevFireMask} (raw) & fire on day $t$ & 0.593 (+) \\
+ & \texttt{prev\_fire\_n3/n5/n9} & mean of fire indicator in $3/5/9$ window & 0.668 / 0.717 / 0.772 (+) \\
+ & \texttt{patch\_fire\_frac} & fraction of patch burning & 0.759 (+) \\
+ & \texttt{dist\_to\_fire} & Euclidean distance to nearest fire (px $\approx$ km), $64\sqrt2$ if none & 0.866 ($-$) \\
+ & \texttt{upwind\_fire\_k2/k4/k8} & \texttt{prev\_fire\_n3} at the pixel $2/4/8$ px upwind & 0.649 / 0.615 / 0.586 (+) \\
+ & \texttt{fire\_wind\_alignment} & $\cos$(upwind direction, direction to nearest fire) & 0.501 \\
+\hline
+Weather & \texttt{sph} (raw) & specific humidity & 0.565 ($-$) \\
+ & \texttt{wind\_u}, \texttt{wind\_v} & $-v_s\sin\theta$, $-v_s\cos\theta$ & 0.522 / 0.518 \\
+ & \texttt{temp\_range} & \texttt{tmmx} $-$ \texttt{tmmn} & 0.602 (+) \\
+ & \texttt{vpd} & $e_s(T_{\max}) - e$ & 0.685 (+) \\
+ & \texttt{min\_rel\_humidity} & $e / e_s(T_{\max})$ & 0.705 ($-$) \\
+ & \texttt{erc\_x\_wind} & \texttt{erc} $\times v_s$ & 0.679 (+) \\
+\hline
+Vegetation & \texttt{NDVI} (raw) & NDVI $\times10^4$ & 0.605 ($-$) \\
+ & \texttt{ndvi\_n5\_mean/std} & local mean / std of NDVI, $5\times5$ & 0.610 ($-$) / 0.513 \\
+ & \texttt{ndvi\_anomaly} & NDVI $-$ local mean & 0.508 \\
+\hline
+Terrain & \texttt{elevation} (raw) & SRTM elevation, m & 0.626 (+) \\
+ & \texttt{slope} & $\arctan\lVert\nabla z\rVert$, degrees & 0.677 (+) \\
+ & \texttt{aspect\_sin/cos} & downslope direction & 0.508 \\
+ & \texttt{elev\_rel} & $z - $ mean of $z$ in $9\times9$ & 0.527 (+) \\
+\hline
+Human & \texttt{population} (raw) & people / km$^2$ & 0.601 ($-$) \\
+ & \texttt{pop\_n9} & mean population in $9\times9$ & 0.628 ($-$) \\
+\hline
+\end{tabular}
+\end{table*}
+
+Engineered features consistently carry more signal than the raw channels they are built from:
+\texttt{dist\_to\_fire} reaches a univariate AUC of 0.866 against 0.593 for the raw fire mask,
+and \texttt{min\_rel\_humidity} 0.705 against 0.565 for specific humidity.
+\texttt{fire\_wind\_alignment} has no marginal signal (0.501) because it is only meaningful close
+to an active fire, and gain importance in the tuned XGBoost shows the model barely uses it
+(26th of 35 features, 0.5\% of total gain). The fire-neighbourhood group dominates instead:
+\texttt{dist\_to\_fire} (34\%), \texttt{prev\_fire\_n9} (22\%) and \texttt{prev\_fire\_n5} (14\%).
+\texttt{upwind\_fire\_k8}, added after the EDA showed long-range spread, ranks 5th (3.4\%), while the
+raw \texttt{PrevFireMask} ranks only 32nd because the engineered neighbourhood features already
+contain its information.
