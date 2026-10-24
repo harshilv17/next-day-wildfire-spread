@@ -13,7 +13,7 @@ The table below summarizes all 12 input channels evaluated across the full train
 | Channel | Unit | Source | Expected Physical Range | Observed Min | Observed Max | Observed Mean | % Outside Physical Range | Action Taken |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
 | `elevation` | $\text{m}$ | SRTM ($30\text{ m}$) | $[-86.0, 4421.0]$ | $-45.00$ | $4193.00$ | $896.57$ | $0.000\%$ | None needed (negative elevation is real topography below sea level) |
-| `th` | $\text{degrees}$ | GRIDMET ($4\text{ km}$) | $[0.0, 360.0]$ | $-505870.06$ | $37735.63$ | $146.65$ | $0.229\%$ | `CLIP['th'] = (0, 360)` in `src/features.py` |
+| `th` | $\text{degrees}$ | GRIDMET ($4\text{ km}$) | $[0.0, 360.0]$ | $-505870.06$ | $37735.63$ | $146.65$ | $0.229\%$ | Wrapped with `th % 360` in `src/features.py` (circular variable, see finding 1) |
 | `vs` | $\text{m/s}$ | GRIDMET ($4\text{ km}$) | $[0.0, 60.0]$ | $-82.65$ | $103.22$ | $3.63$ | $<0.001\%$ | `CLIP['vs'] = (0, None)` in `src/features.py` |
 | `tmmn` | $\text{K}$ | GRIDMET ($4\text{ km}$) | $[253.15, 330.0]$ | $-444.69$ | $716.63$ | $281.85$ | $0.364\%$ | `CLIP['tmmn'] = (253.15, 330)` in `src/features.py` |
 | `tmmx` | $\text{K}$ | GRIDMET ($4\text{ km}$) | $[253.15, 330.0]$ | $0.00$ | $1229.85$ | $297.72$ | $0.364\%$ | `CLIP['tmmx'] = (253.15, 330)` in `src/features.py` |

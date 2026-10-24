@@ -6,7 +6,6 @@ __pycache__/
 .ipynb_checkpoints/
 .DS_Store
 
-reports/results.csv
 reports/preds/
 
 # local planning / assistant / agent files

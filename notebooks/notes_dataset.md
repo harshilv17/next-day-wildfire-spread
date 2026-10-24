@@ -53,11 +53,13 @@
   * **Persistence Baseline (predicts day $t$ mask for day $t+1$):**
     * PR AUC = **11.5%** ($0.115$)
   * **Logistic Regression (pixel-wise with $3 \times 3$ neighborhood context):**
-    * PR AUC = **22.4%** ($0.224$) | Precision = 32.5% | Recall = 35.3%
+    * PR AUC = **19.8%** ($0.198$) | Precision = 32.5% | Recall = 35.3%
     * Trained on balanced 1:1 fire/no-fire samples with class weighting factor $W=7$ for no-fire.
   * **Random Forest (pixel-wise with $3 \times 3$ neighborhood context):**
-    * PR AUC = **25.1%** ($0.251$) | Precision = 26.3% | Recall = 46.9%
+    * PR AUC = **22.5%** ($0.225$) | Precision = 26.3% | Recall = 46.9%
     * Hyperparameters: max depth = 15, class weighting factor $W=5$.
+  * Both non-deep models see all 12 channels for the pixel **and its 8 neighbours** (108 inputs) and exclude the 1-pixel patch border.
+    Our `logreg_raw` / `rf_raw` baselines use the single pixel only, so they score lower by design, not by bug.
   * **Convolutional Autoencoder (Spatial Deep Learning):**
     * PR AUC = **28.4%** ($0.284$) | Precision = 33.6% | Recall = 43.1%
     * Outperformed pixel models by learning 2D spatial context and fire propagation geometry.

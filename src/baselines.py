@@ -134,12 +134,6 @@ def main():
     # Reshape test ground truth labels into (N, 64, 64) maps for evaluate()
     y_test_map = test["label"].to_numpy().reshape(-1, 64, 64)
 
-    # Clean up results.csv if previously containing temporary test runs
-    if RESULTS_CSV.exists():
-        df_existing = pd.read_csv(RESULTS_CSV)
-        if "persistence_test" in df_existing.get("model", []).values:
-            df_existing = df_existing[df_existing["model"] != "persistence_test"]
-            df_existing.to_csv(RESULTS_CSV, index=False, float_format="%.4f")
 
     # Run all baselines
     run_persistence(test, y_test_map)
