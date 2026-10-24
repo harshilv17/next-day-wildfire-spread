@@ -20,10 +20,11 @@ SEED = 0
 CHUNK = 500
 MAX_DIST = SIZE * np.sqrt(2)  # distance to fire when the patch has none
 
-# Physical bounds for raw channels; the export has artefacts (th > 360, tmmx = 0 K, small negative pr).
+# Physical bounds for raw channels; the export has artefacts (tmmx = 0 K, small negative pr).
 # Fixed numbers, not fitted on data, so no leakage. Lower 253.15 K follows Huot et al., 330 K ~ world record high.
+# th is circular, so it is wrapped with % 360 instead (clipping would turn 365 deg into 360, not 5).
 CLIP = {
-    "th": (0, 360), "vs": (0, None), "tmmn": (253.15, 330), "tmmx": (253.15, 330),
+    "vs": (0, None), "tmmn": (253.15, 330), "tmmx": (253.15, 330),
     "sph": (0, None), "pr": (0, None), "erc": (0, None),
 }
 
@@ -37,7 +38,7 @@ FEATURE_GROUPS = {
     # upwind_* and fire_wind_alignment also use wind, but they describe where the fire is
     "fire_neighbourhood": [
         "PrevFireMask", "prev_fire_n3", "prev_fire_n5", "prev_fire_n9", "patch_fire_frac",
-        "dist_to_fire", "upwind_fire_k2", "upwind_fire_k4", "fire_wind_alignment",
+        "dist_to_fire", "upwind_fire_k2", "upwind_fire_k4", "upwind_fire_k8", "fire_wind_alignment",
     ],
     "human": ["population", "pop_n9"],
 }
@@ -55,6 +56,7 @@ def feature_maps(X):
     """X (n, 12, 64, 64) -> {feature: (n, 64, 64)} for every raw and engineered feature."""
     c = {name: X[:, i] for i, name in enumerate(CHANNELS)}
     c |= {name: np.clip(c[name], lo, hi) for name, (lo, hi) in CLIP.items()}
+    c["th"] = c["th"] % 360
     f = dict(c)
     n = len(X)
     rows, cols = np.mgrid[0:SIZE, 0:SIZE]
@@ -67,7 +69,7 @@ def feature_maps(X):
         f[f"prev_fire_n{k}"] = _local_mean(fire, k)
     f["patch_fire_frac"] = np.broadcast_to(fire.mean(axis=(1, 2), keepdims=True), fire.shape)
     p = np.arange(n)[:, None, None]
-    for k in (2, 4):
+    for k in (2, 4, 8):  # k=8: ~40% of next-day fire is >5 km from day-t fire (EDA)
         r = np.rint(rows - k * up_n).astype(int)
         cc = np.rint(cols + k * up_e).astype(int)
         inside = (r >= 0) & (r < SIZE) & (cc >= 0) & (cc < SIZE)
