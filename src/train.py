@@ -80,8 +80,8 @@ def tune(name, train, es, ev, scale_pos_weight):
         pd.DataFrame(rows).to_csv(log_path, index=False, float_format="%.4f")  # rewritten each config
         print(f"{name} {i + 1}/{N_CONFIGS}: pr_auc={score['pr_auc']:.4f} trees={n_trees} {rows[-1]['seconds']}s")
         if best is None or score["pr_auc"] > best[0]:
-            best = (score["pr_auc"], model, {**kwargs, "n_estimators": n_trees})
-    return best[1], best[2]
+            best = (score["pr_auc"], model, {**kwargs, "n_estimators": n_trees}, score["best_f1_threshold"])
+    return best[1:]  # model, constructor kwargs, eval best-F1 threshold
 
 
 if __name__ == "__main__":
@@ -92,8 +92,9 @@ if __name__ == "__main__":
     best_params = json.loads(BEST_PARAMS.read_text()) if BEST_PARAMS.exists() else {}
 
     for name in names:
-        model, params = tune(name, train, es, ev, scale_pos_weight)
+        model, params, threshold = tune(name, train, es, ev, scale_pos_weight)
         best_params[name] = params
         BEST_PARAMS.write_text(json.dumps(best_params, indent=2))
         prob = model.predict_proba(test[ALL_FEATURES])[:, 1]
-        evaluate(test["label"].to_numpy().reshape(-1, SIZE, SIZE), prob.reshape(-1, SIZE, SIZE), name)
+        y_test = test["label"].to_numpy().reshape(-1, SIZE, SIZE)
+        evaluate(y_test, prob.reshape(-1, SIZE, SIZE), name, threshold=threshold)

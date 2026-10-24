@@ -9,7 +9,8 @@ Models evaluated:
 4. xgb_raw: XGBClassifier (hist method, scale_pos_weight matching train class ratio).
 
 All models are trained strictly on the train split and evaluated on the test split
-via evaluate() using full 2D probability maps (N, 64, 64).
+via evaluate() using full 2D probability maps (N, 64, 64). The F1 decision threshold
+is chosen on the eval split and applied unchanged to test.
 """
 import time
 import numpy as np
@@ -19,10 +20,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
-from src.evaluate import RESULTS_CSV, evaluate
+from src.evaluate import RESULTS_CSV, evaluate, metrics
 from src.features import CHANNELS, load_pixels
 
 SEED = 0
+
+
+def eval_threshold(prob_eval, ev):
+    """Best-F1 threshold chosen on the eval split, then applied unchanged to test."""
+    return metrics(ev["label"], prob_eval)["best_f1_threshold"]
 
 
 def run_persistence(test, y_test_map):
@@ -33,10 +39,10 @@ def run_persistence(test, y_test_map):
     """
     print("\n--- 1. Persistence Baseline ---")
     prob = test["PrevFireMask"].clip(lower=0).to_numpy().reshape(-1, 64, 64)
-    return evaluate(y_test_map, prob, "persistence")
+    return evaluate(y_test_map, prob, "persistence", threshold=0.5)  # binary predictions
 
 
-def run_logreg(train, test, y_test_map):
+def run_logreg(train, ev, test, y_test_map):
     """Logistic Regression on standardized raw channels.
 
     Standardization is required for logistic regression because L2 regularization
@@ -57,10 +63,11 @@ def run_logreg(train, test, y_test_map):
 
     prob = clf.predict_proba(X_test)[:, 1].reshape(-1, 64, 64)
     print(f"Logistic regression fit completed in {fit_time:.2f} s")
-    return evaluate(y_test_map, prob, "logreg_raw")
+    threshold = eval_threshold(clf.predict_proba(scaler.transform(ev[CHANNELS]))[:, 1], ev)
+    return evaluate(y_test_map, prob, "logreg_raw", threshold=threshold)
 
 
-def run_random_forest(train, test, y_test_map):
+def run_random_forest(train, ev, test, y_test_map):
     """Random Forest Classifier on raw channels.
 
     Decision trees are invariant to monotonic scaling, so raw clipped channels are used directly.
@@ -91,10 +98,11 @@ def run_random_forest(train, test, y_test_map):
     X_test = test[CHANNELS]
     prob = clf.predict_proba(X_test)[:, 1].reshape(-1, 64, 64)
     print(f"Random forest fit (1M sample) completed in {fit_time:.2f} s")
-    return evaluate(y_test_map, prob, "rf_raw")
+    threshold = eval_threshold(clf.predict_proba(ev[CHANNELS])[:, 1], ev)
+    return evaluate(y_test_map, prob, "rf_raw", threshold=threshold)
 
 
-def run_xgboost(train, test, y_test_map):
+def run_xgboost(train, ev, test, y_test_map):
     """XGBoost Classifier on raw channels.
 
     Uses histogram-based split finding (tree_method='hist') for fast execution on millions of rows.
@@ -122,24 +130,25 @@ def run_xgboost(train, test, y_test_map):
     X_test = test[CHANNELS]
     prob = clf.predict_proba(X_test)[:, 1].reshape(-1, 64, 64)
     print(f"XGBoost fit (scale_pos_weight={scale_pos_weight:.2f}) completed in {fit_time:.2f} s")
-    return evaluate(y_test_map, prob, "xgb_raw")
+    threshold = eval_threshold(clf.predict_proba(ev[CHANNELS])[:, 1], ev)
+    return evaluate(y_test_map, prob, "xgb_raw", threshold=threshold)
 
 
 def main():
     print("Loading pixel tables (raw mode)...")
     train = load_pixels("train", "raw")
+    ev = load_pixels("eval", "raw")
     test = load_pixels("test", "raw")
     print(f"Train table: {train.shape[0]:,} rows | Test table: {test.shape[0]:,} rows")
 
     # Reshape test ground truth labels into (N, 64, 64) maps for evaluate()
     y_test_map = test["label"].to_numpy().reshape(-1, 64, 64)
 
-
     # Run all baselines
     run_persistence(test, y_test_map)
-    run_logreg(train, test, y_test_map)
-    run_random_forest(train, test, y_test_map)
-    run_xgboost(train, test, y_test_map)
+    run_logreg(train, ev, test, y_test_map)
+    run_random_forest(train, ev, test, y_test_map)
+    run_xgboost(train, ev, test, y_test_map)
 
     # Print final summary table
     print("\n" + "=" * 95)
