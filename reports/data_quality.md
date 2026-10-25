@@ -53,8 +53,8 @@ The table below summarizes all 12 input channels evaluated across the full train
    * While `src/features.py` currently clips `th` to `(0, 360)`, `th` is a periodic circular variable. Clipping large negative numbers to $0^\circ$ (North) and positive numbers to $360^\circ$ introduces artificial directional distortion.
    * *Recommendation:* Apply modulo wrapping `th = th % 360` before clipping or trigonometric conversion (`wind_u`, `wind_v`).
 
-2. **Severe Temperature Collinearity ($\rho = 0.92$):**
-   * Minimum temperature (`tmmn`) and maximum temperature (`tmmx`) have a Spearman correlation of $0.92$.
+2. **Strong Temperature Collinearity ($\rho = 0.89$):**
+   * Minimum temperature (`tmmn`) and maximum temperature (`tmmx`) have a Spearman correlation of $0.89$.
    * Feeding both raw temperatures into linear models causes collinearity inflation.
    * *Recommendation:* Harshil's engineered `temp_range = tmmx - tmmn` and `vpd` capture the true physical drivers (vapor pressure deficit and diurnal flux) far better than raw `tmmn`.
 
