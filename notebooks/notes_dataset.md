@@ -72,3 +72,9 @@
   * Among environmental variables, `NDVI` (vegetation fuel availability) and `elevation` (topography) provided the highest incremental gain when paired with `PrevFireMask`.
   * `erc` (energy release component) ranked next in tree-based importance.
   * `pr` (precipitation) had the lowest importance in the paper's models (likely because short-term precipitation is sparse and already captured in drought/fuel indices).
+
+* **Patch Orientation (our finding, not stated in the paper):**
+  * The 64×64 arrays are stored **south-up**: the row index grows northward.
+  * Evidence 1: steep slopes facing the last row are clearly greener (mean NDVI 0.596 vs 0.555), and pole-facing slopes are greener in the Northern Hemisphere; the east-west difference is 5× smaller.
+  * Evidence 2: only with south-up does next-day fire occur more often downwind than upwind in every wind-speed band, rising from 1.1× in calm wind to 2.9× at 8+ m/s (5 km away, train split).
+  * Plot patches with `imshow(..., origin="lower")` so north is at the top; `src/features.py` encodes this as `ROW_TO_NORTH = 1`.

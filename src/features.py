@@ -6,8 +6,8 @@ Use: from src.features import make_pixel_table, load_pixels, FEATURE_GROUPS
 Train is negatively subsampled (all fire pixels + NEG_RATIO x no-fire, fixed seed, -1 labels dropped).
 Eval/test keep every pixel in patch/row/col order, so predictions reshape straight back to (N, 64, 64).
 
-Geometry assumptions: patches are north-up, 1 km pixels, `th` is the direction wind blows FROM
-(degrees clockwise from north, GRIDMET convention).
+Geometry: 1 km pixels, row index grows NORTHWARD (see ROW_TO_NORTH), `th` is the direction wind blows FROM
+(degrees clockwise from north, GRIDMET `wind_from_direction`).
 """
 import numpy as np
 import pandas as pd
@@ -19,6 +19,11 @@ NEG_RATIO = 5
 SEED = 0
 CHUNK = 500
 MAX_DIST = SIZE * np.sqrt(2)  # distance to fire when the patch has none
+
+# Patches are stored south-up: the row index grows northward. Evidence (train split): with this orientation,
+# next-day fire 5 km downwind of day-t fire is more frequent than 5 km upwind in every wind-speed band, and the
+# ratio rises with wind speed (1.13 below 3 m/s -> 2.85 at 8+ m/s); assuming north-up reverses it in strong wind (0.37).
+ROW_TO_NORTH = 1  # +1: row grows northward; -1 would mean north-up
 
 # Physical bounds for raw channels; the export has artefacts (tmmx = 0 K, small negative pr).
 # Fixed numbers, not fitted on data, so no leakage. Lower 253.15 K follows Huot et al., 330 K ~ world record high.
@@ -70,7 +75,7 @@ def feature_maps(X):
     f["patch_fire_frac"] = np.broadcast_to(fire.mean(axis=(1, 2), keepdims=True), fire.shape)
     p = np.arange(n)[:, None, None]
     for k in (2, 4, 8):  # k=8: ~40% of next-day fire is >5 km from day-t fire (EDA)
-        r = np.rint(rows - k * up_n).astype(int)
+        r = np.rint(rows + ROW_TO_NORTH * k * up_n).astype(int)
         cc = np.rint(cols + k * up_e).astype(int)
         inside = (r >= 0) & (r < SIZE) & (cc >= 0) & (cc < SIZE)
         upwind = f["prev_fire_n3"][p, r.clip(0, SIZE - 1), cc.clip(0, SIZE - 1)]
@@ -80,7 +85,7 @@ def feature_maps(X):
     for i in range(n):
         if fire[i].any():
             d, (fr, fc) = distance_transform_edt(fire[i] == 0, return_indices=True)
-            to_fire_n, to_fire_e = rows - fr, fc - cols
+            to_fire_n, to_fire_e = ROW_TO_NORTH * (fr - rows), fc - cols
             dist[i] = d
             # +1: nearest fire lies upwind, so the wind pushes it toward this pixel
             align[i] = np.where(d > 0, (to_fire_n * up_n[i] + to_fire_e * up_e[i]) / np.maximum(d, 1e-6), 0)
@@ -107,7 +112,7 @@ def feature_maps(X):
 
     # terrain
     d_row, d_col = np.gradient(c["elevation"], axis=(1, 2))  # m per 1 km pixel
-    g_n, g_e = -d_row / 1000, d_col / 1000
+    g_n, g_e = ROW_TO_NORTH * d_row / 1000, d_col / 1000
     f["slope"] = np.degrees(np.arctan(np.hypot(g_n, g_e)))
     aspect = np.arctan2(-g_e, -g_n)  # downhill direction, clockwise from north
     f["aspect_sin"], f["aspect_cos"] = np.sin(aspect), np.cos(aspect)
@@ -158,8 +163,13 @@ def _check():
     X[0, CHANNELS.index("sph")] = 0.005
     X[0, CHANNELS.index("tmmx")] = X[0, CHANNELS.index("tmmn")] = 300
     f = feature_maps(X)
-    assert f["upwind_fire_k2"][0, 34, 32] > 0 and f["upwind_fire_k2"][0, 30, 32] == 0
-    assert np.isclose(f["fire_wind_alignment"][0, 40, 32], 1) and np.isclose(f["fire_wind_alignment"][0, 24, 32], -1)
+
+    def south(k):  # row of the pixel k km south of the fire
+        return 32 - ROW_TO_NORTH * k
+
+    assert f["upwind_fire_k2"][0, south(2), 32] > 0 and f["upwind_fire_k2"][0, south(-2), 32] == 0
+    assert np.isclose(f["fire_wind_alignment"][0, south(8), 32], 1)
+    assert np.isclose(f["fire_wind_alignment"][0, south(-8), 32], -1)
     assert f["dist_to_fire"][0, 32, 36] == 4
     assert len(ENGINEERED) >= 15
 
