@@ -1,0 +1,84 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{cite}
+% Also needed by the sections: amssymb (\mathbb in Theory), array and booktabs (tables),
+% xcolor with table option (row shading), url (bibliography links), tcolorbox (boxes below).
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{url}
+\usepackage{microtype}
+\usepackage[most]{tcolorbox}
+
+% Readability: a little more space between lines and paragraphs, fewer stretched lines
+\linespread{1.06}
+\setlength{\parskip}{3pt plus 1pt}
+\setlength{\emergencystretch}{1.5em}
+\raggedbottom  % no stretched gaps when a column ends early
+
+% One muted accent for our own-work notes; neutral shading elsewhere
+\definecolor{accent}{HTML}{3D5A80}
+\definecolor{tblhead}{HTML}{E9ECEF}
+\definecolor{tblours}{HTML}{FFF3BF}
+
+% Key results in the Theory section: a light neutral frame
+\newcommand{\keyeq}[1]{\tcbhighmath[colback=black!3, colframe=black!30, boxrule=0.4pt, arc=1.5pt,
+  left=2pt, right=2pt, top=1pt, bottom=1pt]{#1}}
+% "In our project" notes: how the theory applies to our settings
+\newtcolorbox{projectbox}{enhanced, breakable, colback=accent!4!white, colframe=accent!70,
+  boxrule=0.5pt, arc=1.5pt, left=5pt, right=5pt, top=3pt, bottom=4pt, before skip=8pt, after skip=8pt,
+  title={In our project}, fonttitle=\small\bfseries, coltitle=white, colbacktitle=accent!85,
+  toptitle=1pt, bottomtitle=1pt}
+\newcommand{\relevance}{\textit{Relevance:}}
+
+% Clickable references, citations and links, plus a section outline in the PDF viewer (load last)
+\usepackage[colorlinks=true, linkcolor=accent, citecolor=accent, urlcolor=accent,
+  bookmarks=true, bookmarksnumbered=true, pdftitle={Next Day Wildfire Spread Prediction}]{hyperref}
+
+% Overleaf: figures/ sits next to main.tex. In the repo, figures resolve from ../reports/figures/.
+\graphicspath{{./}{../reports/}}
+
+\begin{document}
+
+\title{Next Day Wildfire Spread Prediction}
+
+\author{
+\IEEEauthorblockN{Harshil, Sushant, Priyanshu, Sachin, Piyush}
+\IEEEauthorblockA{CS \& AI Department, Rishihood University}
+}
+
+\maketitle
+\thispagestyle{plain}
+\pagestyle{plain}
+
+% Abstract as a heading with plain text below (instead of IEEE's inline bold "Abstract-")
+\section*{Abstract}
+We predict which areas an active wildfire will burn the next day, using the Next Day Wildfire Spread
+dataset (18\,545 U.S.\ fire events at 1\,km resolution), where only 1.1\% of pixels burn on day $t+1$. We
+keep a per-pixel model and add 23 engineered spatial features, such as distance to the nearest fire and
+fire upwind. Tuned XGBoost reaches a test PR AUC of 0.257, compared with 0.106 for persistence. The
+dataset authors report 0.225 for a random forest and 0.284 for a CNN, from a different training pipeline,
+so these are reference points rather than a controlled comparison. Ablation shows that the spatial features
+carry the signal, while tuning changes the score by only about 0.01. The model finds fire near the
+existing front but misses spread beyond 5\,km, which motivates a spatial deep model in Phase~2.
+
+\noindent\textit{Index terms:} wildfire spread, remote sensing, gradient boosting, class imbalance,
+precision-recall.
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/theory}
+\input{sections/dataset_eda}
+\input{sections/methodology}
+\input{sections/results}
+\input{sections/conclusion}
+\input{sections/appendix}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

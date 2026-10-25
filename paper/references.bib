@@ -1,0 +1,325 @@
+% references.bib -- Related Work, next-day wildfire spread capstone report
+% Compiled 2026-10-25. Every entry was fetched from a primary metadata source and then cleaned
+% (keys renamed, url/ISSN/month/collection fields dropped, acronyms brace-protected,
+% en-dashes in page ranges normalised to "--").
+%
+% Source of each entry:
+%   huot2022         crossref  (doi.org content negotiation, DOI 10.1109/TGRS.2022.3192974)
+%   chen2016         crossref  (DOI 10.1145/2939672.2939785)
+%   ke2017           neurips   (proceedings.neurips.cc official BibTeX, hash 6449f44a...; no DOI, no page numbers given)
+%   ronneberger2015  crossref  (DOI 10.1007/978-3-319-24574-4_28; Crossref type "inbook" -> converted to inproceedings)
+%   jain2020         crossref  (DOI 10.1139/er-2020-0019)
+%   radke2019        crossref  (DOI 10.24963/ijcai.2019/636; IJCAI proceedings carry DOIs)
+%   hodges2019       crossref  (DOI 10.1007/s10694-019-00846-4)
+%   gerard2023       neurips   (proceedings.neurips.cc official BibTeX, Datasets & Benchmarks track; includes DOI 10.52202/075280-3258)
+%   sayad2019        crossref  (DOI 10.1016/j.firesaf.2019.01.006)
+%   rothermel1972    manual    (no DOI; fields from USU DigitalCommons record digitalcommons.usu.edu/barkbeetles/438
+%                               and NIST FireDOC record; institution "Intermountain Forest and Range Experiment
+%                               Station, Ogden, UT" from the NIST record)
+%   friedman2001     crossref  (DOI 10.1214/aos/1013203451)
+%   breiman2001      crossref  (DOI 10.1023/A:1010933404324)
+%   lin2017          crossref  (DOI 10.1109/ICCV.2017.324)
+%   saito2015        crossref  (DOI 10.1371/journal.pone.0118432)
+%   davis2006        crossref  (DOI 10.1145/1143844.1143874)
+%   lundberg2017     neurips   (proceedings.neurips.cc official BibTeX, hash 8a20a862...; no DOI, no page numbers given)
+%
+% dblp was not usable (HTTP 429 then a bot-challenge page), so NeurIPS entries come from the
+% official proceedings site instead. The NeurIPS 2017 BibTeX has an empty "pages" field; page
+% numbers are left out rather than guessed.
+
+@article{huot2022,
+  author    = {Huot, Fantine and Hu, R. Lily and Goyal, Nita and Sankar, Tharun and Ihme, Matthias and Chen, Yi-Fan},
+  title     = {Next Day Wildfire Spread: A Machine Learning Dataset to Predict Wildfire Spreading From Remote-Sensing Data},
+  journal   = {IEEE Transactions on Geoscience and Remote Sensing},
+  year      = {2022},
+  volume    = {60},
+  pages     = {1--13},
+  doi       = {10.1109/TGRS.2022.3192974},
+  publisher = {IEEE}
+}
+
+@inproceedings{chen2016,
+  author    = {Chen, Tianqi and Guestrin, Carlos},
+  title     = {{XGBoost}: A Scalable Tree Boosting System},
+  booktitle = {Proceedings of the 22nd {ACM} {SIGKDD} International Conference on Knowledge Discovery and Data Mining},
+  series    = {KDD '16},
+  year      = {2016},
+  pages     = {785--794},
+  doi       = {10.1145/2939672.2939785},
+  publisher = {ACM}
+}
+
+@inproceedings{ke2017,
+  author    = {Ke, Guolin and Meng, Qi and Finley, Thomas and Wang, Taifeng and Chen, Wei and Ma, Weidong and Ye, Qiwei and Liu, Tie-Yan},
+  title     = {{LightGBM}: A Highly Efficient Gradient Boosting Decision Tree},
+  booktitle = {Advances in Neural Information Processing Systems},
+  editor    = {Guyon, I. and Von Luxburg, U. and Bengio, S. and Wallach, H. and Fergus, R. and Vishwanathan, S. and Garnett, R.},
+  volume    = {30},
+  year      = {2017},
+  publisher = {Curran Associates, Inc.},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2017/file/6449f44a102fde848669bdd9eb6b76fa-Paper.pdf}
+}
+
+@inproceedings{ronneberger2015,
+  author    = {Ronneberger, Olaf and Fischer, Philipp and Brox, Thomas},
+  title     = {{U-Net}: Convolutional Networks for Biomedical Image Segmentation},
+  booktitle = {Medical Image Computing and Computer-Assisted Intervention -- {MICCAI} 2015},
+  series    = {Lecture Notes in Computer Science},
+  year      = {2015},
+  pages     = {234--241},
+  doi       = {10.1007/978-3-319-24574-4_28},
+  publisher = {Springer International Publishing},
+  address   = {Cham}
+}
+
+@article{jain2020,
+  author    = {Jain, Piyush and Coogan, Sean C. P. and Subramanian, Sriram Ganapathi and Crowley, Mark and Taylor, Steve and Flannigan, Mike D.},
+  title     = {A review of machine learning applications in wildfire science and management},
+  journal   = {Environmental Reviews},
+  year      = {2020},
+  volume    = {28},
+  number    = {4},
+  pages     = {478--505},
+  doi       = {10.1139/er-2020-0019},
+  publisher = {Canadian Science Publishing}
+}
+
+@inproceedings{radke2019,
+  author    = {Radke, David and Hessler, Anna and Ellsworth, Dan},
+  title     = {{FireCast}: Leveraging Deep Learning to Predict Wildfire Spread},
+  booktitle = {Proceedings of the Twenty-Eighth International Joint Conference on Artificial Intelligence ({IJCAI-19})},
+  year      = {2019},
+  pages     = {4575--4581},
+  doi       = {10.24963/ijcai.2019/636},
+  publisher = {International Joint Conferences on Artificial Intelligence Organization}
+}
+
+@article{hodges2019,
+  author    = {Hodges, Jonathan L. and Lattimer, Brian Y.},
+  title     = {Wildland Fire Spread Modeling Using Convolutional Neural Networks},
+  journal   = {Fire Technology},
+  year      = {2019},
+  volume    = {55},
+  number    = {6},
+  pages     = {2115--2142},
+  doi       = {10.1007/s10694-019-00846-4},
+  publisher = {Springer}
+}
+
+@inproceedings{gerard2023,
+  author    = {Gerard, Sebastian and Zhao, Yu and Sullivan, Josephine},
+  title     = {{WildfireSpreadTS}: A dataset of multi-modal time series for wildfire spread prediction},
+  booktitle = {Advances in Neural Information Processing Systems (Datasets and Benchmarks Track)},
+  editor    = {Oh, A. and Naumann, T. and Globerson, A. and Saenko, K. and Hardt, M. and Levine, S.},
+  volume    = {36},
+  year      = {2023},
+  pages     = {74515--74529},
+  doi       = {10.52202/075280-3258},
+  publisher = {Curran Associates, Inc.}
+}
+
+@article{sayad2019,
+  author    = {Sayad, Younes Oulad and Mousannif, Hajar and Al Moatassime, Hassan},
+  title     = {Predictive modeling of wildfires: A new dataset and machine learning approach},
+  journal   = {Fire Safety Journal},
+  year      = {2019},
+  volume    = {104},
+  pages     = {130--146},
+  doi       = {10.1016/j.firesaf.2019.01.006},
+  publisher = {Elsevier}
+}
+
+@techreport{rothermel1972,
+  author      = {Rothermel, R. C.},
+  title       = {A Mathematical Model for Predicting Fire Spread in Wildland Fuels},
+  institution = {USDA Forest Service, Intermountain Forest and Range Experiment Station},
+  address     = {Ogden, UT},
+  type        = {Research Paper},
+  number      = {INT-115},
+  year        = {1972}
+}
+
+@article{friedman2001,
+  author    = {Friedman, Jerome H.},
+  title     = {Greedy function approximation: A gradient boosting machine},
+  journal   = {The Annals of Statistics},
+  year      = {2001},
+  volume    = {29},
+  number    = {5},
+  pages     = {1189--1232},
+  doi       = {10.1214/aos/1013203451},
+  publisher = {Institute of Mathematical Statistics}
+}
+
+@article{breiman2001,
+  author    = {Breiman, Leo},
+  title     = {Random Forests},
+  journal   = {Machine Learning},
+  year      = {2001},
+  volume    = {45},
+  number    = {1},
+  pages     = {5--32},
+  doi       = {10.1023/A:1010933404324},
+  publisher = {Springer}
+}
+
+@inproceedings{lin2017,
+  author    = {Lin, Tsung-Yi and Goyal, Priya and Girshick, Ross and He, Kaiming and Doll{\'a}r, Piotr},
+  title     = {Focal Loss for Dense Object Detection},
+  booktitle = {2017 {IEEE} International Conference on Computer Vision ({ICCV})},
+  year      = {2017},
+  pages     = {2999--3007},
+  doi       = {10.1109/ICCV.2017.324},
+  publisher = {IEEE}
+}
+
+@article{saito2015,
+  author    = {Saito, Takaya and Rehmsmeier, Marc},
+  title     = {The Precision-Recall Plot Is More Informative than the {ROC} Plot When Evaluating Binary Classifiers on Imbalanced Datasets},
+  journal   = {PLOS ONE},
+  year      = {2015},
+  volume    = {10},
+  number    = {3},
+  pages     = {e0118432},
+  doi       = {10.1371/journal.pone.0118432},
+  publisher = {Public Library of Science}
+}
+
+@inproceedings{davis2006,
+  author    = {Davis, Jesse and Goadrich, Mark},
+  title     = {The relationship between Precision-Recall and {ROC} curves},
+  booktitle = {Proceedings of the 23rd International Conference on Machine Learning ({ICML} '06)},
+  year      = {2006},
+  pages     = {233--240},
+  doi       = {10.1145/1143844.1143874},
+  publisher = {ACM}
+}
+
+@inproceedings{lundberg2017,
+  author    = {Lundberg, Scott M. and Lee, Su-In},
+  title     = {A Unified Approach to Interpreting Model Predictions},
+  booktitle = {Advances in Neural Information Processing Systems},
+  editor    = {Guyon, I. and Von Luxburg, U. and Bengio, S. and Wallach, H. and Fergus, R. and Vishwanathan, S. and Garnett, R.},
+  volume    = {30},
+  year      = {2017},
+  publisher = {Curran Associates, Inc.},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf}
+}
+
+% Added after the NDWS literature search: NDWS follow-up papers, TreeSHAP (lundberg2020), and
+% Andrews 2018 (verified description of the Rothermel model). Sources are noted in local research notes.
+
+
+@inproceedings{fitzgerald2023,
+  author    = {Fitzgerald, Jack and Seefried, Ethan and Yost, James E. and Pallickara, Sangmi Lee and Blanchard, Nathaniel},
+  title     = {Paying Attention to Wildfire: Using {U-Net} with Attention Blocks on Multimodal Data for Next Day Prediction},
+  booktitle = {Proceedings of the 25th International Conference on Multimodal Interaction (ICMI '23)},
+  publisher = {ACM},
+  address   = {Paris, France},
+  year      = {2023},
+  month     = oct,
+  pages     = {470--480},
+  doi       = {10.1145/3577190.3614116}
+}
+
+@article{xiao2024,
+  author  = {Xiao, Hongtao and Zhu, Yingfang and Sun, Yurong and Zhang, Gui and Gong, Zhiwei},
+  title   = {Wildfire Spread Prediction Using Attention Mechanisms in {U2-NET}},
+  journal = {Forests},
+  volume  = {15},
+  number  = {10},
+  pages   = {1711},
+  year    = {2024},
+  doi     = {10.3390/f15101711}
+}
+
+@article{andrianarivony2025,
+  author  = {Andrianarivony, Henintsoa S. and Akhloufi, Moulay A.},
+  title   = {{LinU-Mamba}: Visual {Mamba} {U-Net} with Linear Attention to Predict Wildfire Spread},
+  journal = {Remote Sensing},
+  volume  = {17},
+  number  = {15},
+  pages   = {2715},
+  year    = {2025},
+  doi     = {10.3390/rs17152715}
+}
+
+@article{zhou2025,
+  author  = {Zhou, Yihang and Kong, Ruige and Xu, Zhengsen and Xu, Linlin and Cheng, Sibo},
+  title   = {Comparative and Interpretative Analysis of {CNN} and Transformer Models in Predicting Wildfire Spread Using Remote Sensing Data},
+  journal = {Journal of Geophysical Research: Machine Learning and Computation},
+  volume  = {2},
+  number  = {2},
+  pages   = {e2024JH000409},
+  year    = {2025},
+  doi     = {10.1029/2024JH000409}
+}
+
+@article{marjani2023,
+  author  = {Marjani, M. and Mesgari, M. S.},
+  title   = {The Large-Scale Wildfire Spread Prediction Using a Multi-Kernel Convolutional Neural Network},
+  journal = {ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences},
+  volume  = {X-4/W1-2022},
+  pages   = {483--488},
+  year    = {2023},
+  doi     = {10.5194/isprs-annals-X-4-W1-2022-483-2023}
+}
+
+
+@misc{han2026,
+  author        = {Han, Jinzhen and Lee, JinByeong and Han, Hak and Na, YeonJu and Lee, Jae-Joon},
+  title         = {{FireSenseNet}: A Dual-Branch {CNN} with Cross-Attentive Feature Interaction for Next-Day Wildfire Spread Prediction},
+  year          = {2026},
+  eprint        = {2604.07675},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  note          = {arXiv preprint arXiv:2604.07675},
+  url           = {https://arxiv.org/abs/2604.07675}
+}
+
+@misc{esparza2026,
+  author        = {Esparza, Miguel and Ayanzadeh, Aydin and Mousavi, Ahmad and Mostafavi, Ali},
+  title         = {Modular Deep Learning Mechanisms for Auditable Next-Day Wildfire Spread Prediction},
+  year          = {2026},
+  eprint        = {2609.17763},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  note          = {arXiv preprint arXiv:2609.17763},
+  url           = {https://arxiv.org/abs/2609.17763}
+}
+
+@misc{luo2026,
+  author        = {Luo, Yingyi and Rong, Shuaiang and Watts, Adam and Cetin, Ahmet Enis},
+  title         = {{U-Net} with {Hadamard} Transform and {DCT} Latent Spaces for Next-day Wildfire Spread Prediction},
+  year          = {2026},
+  eprint        = {2602.11672},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  note          = {arXiv preprint arXiv:2602.11672},
+  url           = {https://arxiv.org/abs/2602.11672}
+}
+
+
+@article{lundberg2020,
+  author  = {Lundberg, Scott M. and Erion, Gabriel and Chen, Hugh and DeGrave, Alex and Prutkin, Jordan M. and Nair, Bala and Katz, Ronit and Himmelfarb, Jonathan and Bansal, Nisha and Lee, Su-In},
+  title   = {From local explanations to global understanding with explainable {AI} for trees},
+  journal = {Nature Machine Intelligence},
+  volume  = {2},
+  number  = {1},
+  pages   = {56--67},
+  year    = {2020},
+  doi     = {10.1038/s42256-019-0138-9}
+}
+
+@techreport{andrews2018,
+  author      = {Andrews, Patricia L.},
+  title       = {The {Rothermel} surface fire spread model and associated developments: A comprehensive explanation},
+  institution = {U.S. Department of Agriculture, Forest Service, Rocky Mountain Research Station},
+  address     = {Fort Collins, CO},
+  type        = {General Technical Report},
+  number      = {RMRS-GTR-371},
+  year        = {2018},
+  month       = mar,
+  note        = {121 p.},
+  doi         = {10.2737/RMRS-GTR-371}
+}
