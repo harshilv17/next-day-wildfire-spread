@@ -11,21 +11,21 @@
     "n_jobs": -1,
     "random_state": 0,
     "scale_pos_weight": 4.999538183420177,
-    "n_estimators": 245
+    "n_estimators": 216
   },
   "lightgbm": {
-    "colsample_bytree": 0.5320737481743922,
-    "learning_rate": 0.13044889432208398,
-    "min_child_samples": 2000,
-    "min_split_gain": 0,
-    "num_leaves": 31,
-    "reg_lambda": 1.0421684497173216,
-    "subsample": 0.9666891816077843,
+    "colsample_bytree": 0.8780533469325205,
+    "learning_rate": 0.05846254471906264,
+    "min_child_samples": 500,
+    "min_split_gain": 1,
+    "num_leaves": 15,
+    "reg_lambda": 0.27935938457478204,
+    "subsample": 0.981099604606794,
     "subsample_freq": 1,
     "n_jobs": -1,
     "random_state": 0,
     "verbose": -1,
     "scale_pos_weight": 4.999538183420177,
-    "n_estimators": 146
+    "n_estimators": 294
   }
 }
