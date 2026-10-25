@@ -1,0 +1,117 @@
+% Appendix: derivations for the Theoretical Background (Priyanshu)
+
+\appendices
+
+\section{Derivations for Section~\ref{sec:theory}}
+\label{app:derivations}
+
+This appendix derives the results used in Section~\ref{sec:theory}. Table~\ref{tab:notation} lists the
+notation.
+
+\begin{table}[h]
+\centering
+\caption{Notation.}
+\label{tab:notation}
+\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{l>{\raggedright\arraybackslash}p{5.6cm}}
+\toprule
+\rowcolor{tblhead}
+\textbf{Symbol} & \textbf{Meaning} \\
+\midrule
+$\mathbf{x}_i,\ y_i$ & features and label (1 fire, 0 no fire) of pixel $i$ \\
+$F,\ f_m$ & ensemble score (log-odds); the $m$-th tree \\
+$p = \sigma(F)$ & predicted fire probability \\
+$T,\ w_j$ & number of leaves; value of leaf $j$ \\
+$\lambda,\ \gamma$ & L2 penalty on leaf values; penalty per leaf \\
+$g_i,\ h_i$ & gradient and Hessian of the loss for pixel $i$ \\
+$G_j,\ H_j$ & sums of $g_i$ and $h_i$ over the rows in leaf $j$ \\
+$\pi$ & true fire rate (prevalence) \\
+$r,\ w$ & share of no-fire rows kept; weight on fire rows \\
+$P,\ N$ & number of fire and no-fire pixels \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Gradient and Hessian of the log loss}
+\label{app:grad}
+
+For one pixel, $l = -[\,y \log p + (1-y)\log(1-p)\,]$ with $p = \sigma(\hat{y})$. The sigmoid satisfies
+$\partial p/\partial \hat{y} = p(1-p)$, so by the chain rule
+\begin{align}
+g &= \frac{\partial l}{\partial \hat{y}}
+  = -\left[\frac{y}{p} - \frac{1-y}{1-p}\right] p(1-p) \nonumber\\
+  &= -\big[\,y(1-p) - (1-y)p\,\big] = p - y , \\
+h &= \frac{\partial g}{\partial \hat{y}} = \frac{\partial p}{\partial \hat{y}} = p(1-p) .
+\end{align}
+So $g$ is the prediction error, and $h$ is largest when the model is unsure ($p = 0.5$) and goes to zero
+when it is confident. With weight $w$ on the positive class, a positive row has loss $-w \log p$, and the
+same steps give $g = w(p-1)$ and $h = w\,p(1-p)$: both are multiplied by $w$, as in
+(\ref{eq:weighted_gh}).
+
+\subsection{Leaf values and split gain}
+\label{app:gain}
+
+Substituting the second-order expansion into (\ref{eq:objective}) and dropping terms that do not depend
+on $f_m$,
+\begin{multline}
+\mathcal{L}^{(m)} \approx \sum_{i=1}^{n} \Big[ g_i f_m(\mathbf{x}_i) + \tfrac{1}{2} h_i f_m(\mathbf{x}_i)^2 \Big] \\
++ \gamma T + \tfrac{1}{2}\lambda \sum_{j=1}^{T} w_j^2 .
+\end{multline}
+Every row in leaf $j$ has $f_m(\mathbf{x}_i) = w_j$, so the sum over rows becomes a sum over leaves,
+which gives (\ref{eq:leafsum}). Each leaf's term is a quadratic in $w_j$ with minimum at
+$w_j^\ast = -G_j/(H_j+\lambda)$. Substituting it back,
+\begin{align}
+G_j w_j^\ast + \tfrac{1}{2}(H_j+\lambda)\, (w_j^\ast)^2
+&= -\frac{G_j^2}{H_j+\lambda} + \frac{1}{2}\frac{G_j^2}{H_j+\lambda} \nonumber\\
+&= -\frac{1}{2}\frac{G_j^2}{H_j+\lambda} ,
+\end{align}
+which gives $\mathcal{L}^\ast$ in (\ref{eq:leafweight}). A split replaces the parent's term by the terms
+of its two children and adds one leaf (one more $\gamma$). The decrease in $\mathcal{L}^\ast$ is therefore
+the gain (\ref{eq:gain}).
+
+\subsection{Probability shift from subsampling and weighting}
+\label{app:shift}
+
+Let $f_1(\mathbf{x})$ and $f_0(\mathbf{x})$ be the feature distributions of fire and no-fire pixels. By
+Bayes' rule the true probability of fire is
+\begin{equation}
+p = \frac{\pi f_1(\mathbf{x})}{\pi f_1(\mathbf{x}) + (1-\pi) f_0(\mathbf{x})} .
+\end{equation}
+Keeping a share $r$ of the negatives and weighting positives by $w$ changes the class prior seen by the
+loss to $w\pi : r(1-\pi)$, but leaves $f_1$ and $f_0$ unchanged. The probability that minimises the
+training loss is therefore
+\begin{equation}
+p' = \frac{w\pi f_1(\mathbf{x})}{w\pi f_1(\mathbf{x}) + r(1-\pi) f_0(\mathbf{x})} .
+\end{equation}
+Taking odds, the densities appear in the same ratio in both:
+\begin{align}
+\frac{p'}{1-p'} &= \frac{w\pi f_1(\mathbf{x})}{r(1-\pi) f_0(\mathbf{x})}
+= \frac{w}{r}\cdot\frac{\pi f_1(\mathbf{x})}{(1-\pi) f_0(\mathbf{x})} \nonumber\\
+&= \frac{w}{r}\cdot\frac{p}{1-p} .
+\end{align}
+On the log-odds scale this is a constant shift, $\operatorname{logit} p' = \operatorname{logit} p + \log(w/r)$.
+Solving for $p$ gives the inverse map (\ref{eq:inverse_shift}). For our values, $w/r = 89.9$, so a score
+of $p' = 0.915$ (odds 10.8) has true odds $10.8/89.9 = 0.12$, that is $p = 0.107$.
+
+\subsection{Precision as a function of prevalence}
+\label{app:prec}
+
+Substitute $\mathrm{TP} = \mathrm{TPR}\cdot P$ and $\mathrm{FP} = \mathrm{FPR}\cdot N$ into the precision,
+then divide numerator and denominator by $P+N$:
+\begin{align}
+\mathrm{Precision} &= \frac{\mathrm{TPR}\cdot P}{\mathrm{TPR}\cdot P + \mathrm{FPR}\cdot N} \nonumber\\
+&= \frac{\pi\,\mathrm{TPR}}{\pi\,\mathrm{TPR} + (1-\pi)\,\mathrm{FPR}} .
+\end{align}
+
+\subsection{Variance of an average of trees}
+\label{app:var}
+
+For $B$ trees with variance $\sigma^2$ and pairwise correlation $\rho$, the variance of the sum is the sum
+of the $B$ variances and the $B(B-1)$ covariances $\rho\sigma^2$:
+\begin{align}
+\mathrm{Var}\Big(\frac{1}{B}\sum_{b=1}^{B} \hat{f}_b\Big)
+&= \frac{1}{B^2}\Big[ B\sigma^2 + B(B-1)\,\rho\sigma^2 \Big] \nonumber\\
+&= \frac{\sigma^2}{B} + \frac{B-1}{B}\,\rho\sigma^2
+ = \rho\,\sigma^2 + \frac{1-\rho}{B}\,\sigma^2 .
+\end{align}
