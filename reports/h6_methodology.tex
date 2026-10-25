@@ -25,7 +25,14 @@ The TFRecords are parsed directly from the protobuf wire format (no TensorFlow d
 arrays of shape $(N,12,64,64)$. The raw export contains physically impossible values,
 so before feature construction each affected channel is clipped to fixed physical bounds
 (Table~\ref{tab:clip}). Wind direction is circular, so instead of clipping it is wrapped
-($\theta \bmod 360$; 0.23\% of train pixels lie outside $[0, 360)$). The bounds are constants, not statistics fitted on the data, so clipping
+($\theta \bmod 360$; 0.23\% of train pixels lie outside $[0, 360)$).
+The dataset does not state the patch orientation, so we verified it from the data: the arrays are
+stored south-up (the row index grows northward). Steep slopes facing the last row are clearly
+greener than those facing the first row (mean NDVI 0.596 vs.\ 0.555, while east- and west-facing
+slopes differ by only 0.008), as expected for pole-facing slopes in the Northern Hemisphere, and only
+this orientation makes next-day fire more frequent downwind than upwind in every wind-speed band
+(from 1.1$\times$ in calm wind to 2.9$\times$ at 8\,m/s or more, 5\,km from the fire). All
+direction-dependent features (upwind fire, wind alignment, aspect) use this orientation. The bounds are constants, not statistics fitted on the data, so clipping
 introduces no leakage. No normalisation is applied for the tree models, which are invariant to
 monotone rescaling of individual features.
 
@@ -87,10 +94,10 @@ Both & \texttt{learning\_rate} & log-uniform $[0.02, 0.3]$ \\
 \end{tabular}
 \end{table}
 
-Eval PR AUC varied little across configurations (XGBoost 0.200--0.208, LightGBM 0.190--0.202),
+Eval PR AUC varied little across configurations (XGBoost 0.196--0.207, LightGBM 0.189--0.203),
 so the results are not sensitive to the exact hyperparameters. The selected XGBoost uses depth 6,
-learning rate 0.026 and 245 trees; the selected LightGBM uses 31 leaves, at least 2\,000 samples
-per leaf, learning rate 0.13 and 146 trees. Full configurations are in
+learning rate 0.026 and 216 trees; the selected LightGBM uses 15 leaves, at least 500 samples
+per leaf, learning rate 0.058 and 294 trees. Full configurations are in
 \texttt{reports/best\_params.json}.
 
 \subsection{Evaluation}
@@ -170,8 +177,11 @@ Engineered features consistently carry more signal than the raw channels they ar
 and \texttt{min\_rel\_humidity} 0.705 against 0.565 for specific humidity.
 \texttt{fire\_wind\_alignment} has no marginal signal (0.501) because it is only meaningful close
 to an active fire, and gain importance in the tuned XGBoost shows the model barely uses it
-(26th of 35 features, 0.5\% of total gain). The fire-neighbourhood group dominates instead:
-\texttt{dist\_to\_fire} (34\%), \texttt{prev\_fire\_n9} (22\%) and \texttt{prev\_fire\_n5} (14\%).
-\texttt{upwind\_fire\_k8}, added after the EDA showed long-range spread, ranks 5th (3.4\%), while the
-raw \texttt{PrevFireMask} ranks only 32nd because the engineered neighbourhood features already
+(23rd of 35 features, 0.5\% of total gain). The fire-neighbourhood group dominates instead:
+\texttt{dist\_to\_fire} (32\%), \texttt{prev\_fire\_n9} (23\%) and \texttt{prev\_fire\_n5} (13\%).
+The three upwind features rank 4th, 5th and 7th and together hold 13.5\% of gain;
+\texttt{upwind\_fire\_k8}, added after the EDA showed long-range spread, ranks 5th (3.9\%).
+With the patch orientation corrected, their combined share rose from 9.4\% to 13.5\%,
+so the model uses wind direction more once upwind is computed on the correct side.
+The raw \texttt{PrevFireMask} ranks only 32nd because the engineered neighbourhood features already
 contain its information.
