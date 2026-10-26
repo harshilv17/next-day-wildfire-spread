@@ -19,8 +19,12 @@ at random to train, eval or test in an 8:1:1 ratio and leave a one-day buffer be
 the splits are separated in time and a fire's day-$t$/day-$t{+}1$ pair never straddles two splits.
 All features are computed inside a single patch, so no feature uses pixels from another sample. The
 week-based split separates samples in time, but it does not guarantee spatial or fire-event
-independence: a long-lived fire can appear in weeks assigned to different splits. We have not checked
-for such overlap.
+independence: a long-lived fire can appear in weeks assigned to different splits. We checked this on
+the elevation grid: 503 of the 1\,689 test patches (30\%) cover exactly the same $64\times64$ location as
+a training patch, 38 of them with the same day-$t$ fire mask, but none is an identical sample. These
+patches are easier for every model, persistence included (0.151 against 0.097), and the ranking is
+unchanged on new locations alone (tuned XGBoost 0.243, LightGBM 0.234, raw random forest 0.145,
+persistence 0.097).
 The eval split is used only for early stopping and hyperparameter selection;
 the test split is scored once per final model.
 
