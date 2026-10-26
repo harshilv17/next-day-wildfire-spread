@@ -13,6 +13,8 @@ pip install -r requirements.txt
 
 On macOS, XGBoost also needs OpenMP: `brew install libomp`.
 
+Tested on macOS 26.6 (Apple M3, 8 GB RAM) with Python 3.14.8: the full pipeline and both notebooks run with no extra steps beyond `libomp`. On this machine the steps took longer than the times below (data 166 s, features 54 s, train 23 min, baselines 98 s, ablation 5 min).
+
 Download the Kaggle dataset and put the 19 `*.tfrecord` files in `data/`.
 
 ## Layout
