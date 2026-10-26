@@ -22,7 +22,7 @@ MAX_DIST = SIZE * np.sqrt(2)  # distance to fire when the patch has none
 
 # Patches are stored south-up: the row index grows northward. Evidence (train split): with this orientation,
 # next-day fire 5 km downwind of day-t fire is more frequent than 5 km upwind in every wind-speed band, and the
-# ratio rises with wind speed (1.13 below 3 m/s -> 2.85 at 8+ m/s); assuming north-up reverses it in strong wind (0.37).
+# ratio rises with wind speed (1.13 below 3 m/s -> 3.1 at 8+ m/s); assuming north-up reverses it in strong wind (0.37).
 ROW_TO_NORTH = 1  # +1: row grows northward; -1 would mean north-up
 
 # Physical bounds for raw channels; the export has artefacts (tmmx = 0 K, small negative pr).
