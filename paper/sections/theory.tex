@@ -178,9 +178,9 @@ loss reduces to (\ref{eq:weighted_ll}).
 \end{figure}
 
 \begin{projectbox}
-The training table keeps every fire pixel and 5 no-fire pixels per fire pixel, so $r = 5/89.9 = 0.056$,
+The training table keeps every fire pixel and 5 no-fire pixels per fire pixel, so $r = 5/90.0 = 0.056$,
 and fire rows get $w = 5$ (\texttt{scale\_pos\_weight}). The odds are therefore multiplied by
-$w/r = 89.9$, and the model trains as if the classes were balanced (Fig.~\ref{fig:th_imbalance}). This
+$w/r = 90.0$, and the model trains as if the classes were balanced (Fig.~\ref{fig:th_imbalance}). This
 explains the high F1 threshold of 0.915 chosen on eval: by (\ref{eq:inverse_shift}) it corresponds to a
 probability of 0.107 on the true scale, while a score of 0.5 corresponds to 0.011, the training fire
 rate. We checked the correction on test with a retrained copy of the model (Appendix~\ref{app:checks}).
