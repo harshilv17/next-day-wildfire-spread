@@ -1,0 +1,41 @@
+% Conclusion and Future Work (Piyush)
+% Numbers come from reports/results.csv, reports/ablation.csv, reports/checks/ and the Results section.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We predicted next-day wildfire spread with a per-pixel model and 23 engineered spatial features.
+Tuned XGBoost reaches a test PR AUC of 0.257 (95\% bootstrap interval over fire events 0.19--0.33),
+against 0.106 for persistence. The random forest (0.225) and CNN (0.284) of Huot et al.\ both lie
+inside our interval, so our model sits between them, but we make no claim of a significant
+difference.
+
+The signal is spatial. Removing the fire-neighbourhood features drops PR AUC from 0.248 to 0.048,
+while tuning moves it by only about 0.01. Training on 5\% of the training patches gives almost the
+same eval PR AUC (0.204 against 0.207), so the model is limited by bias, not variance: more data
+or tuning will not help much.
+
+The model finds fire at the existing front, with recall of 0.96--0.99 within 1\,px of day-$t$ fire,
+but recall is near zero beyond 5\,km, where 64\% of the missed fire pixels lie. It also raises
+false alarms around fires that are dying down. Both errors come from the per-pixel design, which
+sees the patch only through fixed-radius summaries.
+
+Finally, we found that the patches are stored south-up, which the dataset does not state. Every
+direction-dependent feature, such as fire upwind, depends on this orientation.
+
+\section{Future Work}
+\label{sec:future}
+
+Phase~2 will address the limits found above.
+\begin{itemize}
+\item \textbf{Whole-patch models.} A U-Net~\cite{ronneberger2015} or CNN that sees the whole patch
+  can learn the shape of the fire front instead of a fixed-radius halo.
+\item \textbf{Imbalance-aware losses.} Focal loss~\cite{lin2017} or a class-weighted segmentation
+  loss can replace negative subsampling.
+\item \textbf{Multi-day inputs.} Several days of fire history, as in WildfireSpreadTS~\cite{gerard2023},
+  may help tell growing fires from dying ones.
+\item \textbf{Split leakage.} The dataset has no fire identifier, and the test split alone contains
+  40 exact duplicate patches. We will check whether one fire appears in more than one split.
+\item \textbf{Uncertain labels.} Cloud and smoke pixels ($-1$) are now ignored; modelling them, for
+  example by filling them from neighbouring days, would use more of the data.
+\end{itemize}

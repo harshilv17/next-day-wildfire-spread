@@ -1,0 +1,56 @@
+% Introduction (Piyush)
+% Numbers come from reports/results.csv, reports/ablation.csv and reports/checks/ci_events.csv.
+
+\section{Introduction}
+\label{sec:intro}
+
+Large wildfires destroy homes and ecosystems, and their smoke harms health far from the fire.
+Fire managers decide each day where to send crews and whom to warn, so they need to know where an
+active fire will be tomorrow. Physics-based spread models answer this question, but they need
+detailed fuel and weather inputs~\cite{andrews2018} that are often missing at scale. Machine learning offers a
+data-driven alternative~\cite{jain2020}.
+
+We study next-day wildfire spread as defined by Huot et al.~\cite{huot2022}: given 12 input
+channels on day $t$, predict for every pixel whether it is burning on day $t+1$. Their Next Day
+Wildfire Spread dataset contains 18\,545 patches of U.S.\ fires from 2012 to 2020, each covering
+$64\times64$\,km at 1\,km resolution with weather, terrain, vegetation, population and the day-$t$
+fire mask.
+
+The task is hard for two reasons. First, fire is rare: only 1.1\% of labelled training pixels burn
+on day $t+1$, a 90:1 imbalance, so accuracy is meaningless and we report PR AUC. Second, the
+labels are noisy: clouds and smoke hide part of the fire mask, and these uncertain pixels must be
+left out of training and evaluation.
+
+Our approach keeps a simple per-pixel model and moves the spatial reasoning into the features. We
+build a pixel table with every fire pixel and a 5:1 sample of no-fire pixels, add 23 engineered
+spatial features to the 12 raw channels, such as the distance to the nearest fire and fire upwind,
+and train XGBoost and LightGBM tuned on eval PR AUC (Fig.~\ref{fig:pipeline}). Tuned XGBoost
+reaches a test PR AUC of 0.257 against 0.106 for persistence.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/pipeline.png}
+\caption{Phase~1 pipeline. TFRecords are parsed into a pixel table with all fire pixels and a 5:1
+sample of no-fire pixels, described by 35 features (12 raw and 23 engineered). XGBoost and LightGBM
+are tuned on eval PR AUC and scored once on the test split.}
+\label{fig:pipeline}
+\end{figure*}
+
+Our contributions are:
+\begin{itemize}
+\item a per-pixel pipeline with 23 engineered spatial features that reaches a test PR AUC of 0.257
+  (95\% bootstrap interval over fire events 0.19--0.33), between the random forest (0.225) and the
+  CNN (0.284) reported by Huot et al.;
+\item ablation, tuning and learning-curve results showing that the signal lies in the fire
+  neighbourhood and that the model is limited by bias, not variance;
+\item an error and event-level analysis showing where the model fails: spread beyond 5\,km and
+  false alarms around dying fires;
+\item data findings that matter for any model on this dataset: the patches are stored south-up,
+  the raw export contains impossible values, and the test split contains duplicate patches.
+\end{itemize}
+
+Section~\ref{sec:related} reviews related work and Section~\ref{sec:theory} gives the theory behind
+our choices. Section~\ref{sec:dataset} describes the dataset and our exploratory analysis,
+Sections~\ref{sec:method} and~\ref{sec:features} the method and the engineered features, and
+Section~\ref{sec:results} the results. Section~\ref{sec:conclusion} concludes and
+Section~\ref{sec:future} outlines Phase~2.
