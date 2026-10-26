@@ -24,7 +24,7 @@ Uncertain pixels make up 1.1--1.4\% of day-$t$ masks and 2.3--2.8\% of day-$t{+}
 similar shares in every split, so ignoring them in training and evaluation introduces no shift
 between splits. Next-day fire covers only 1.10\% of labelled training pixels (90:1), 1.37\% on eval
 and 1.25\% on test; an all-zero predictor would exceed 98.7\% accuracy, which is why we report
-PR AUC. At patch level, 58.2\% of fires grow from day $t$ to $t+1$, 38.7\% shrink and 3.1\% keep
+PR AUC. Across the 14\,979 training patches, 58.2\% of fires grow from day $t$ to $t+1$, 38.7\% shrink and 3.1\% keep
 the same size (Fig.~\ref{fig:growth}), matching the 58\%/39\% reported by Huot et al.
 Shrinking fires make persistence over-predict, and many small day-$t$ fires gain far more pixels
 on day $t+1$.

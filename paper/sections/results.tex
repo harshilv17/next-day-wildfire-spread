@@ -14,8 +14,7 @@ PR AUC, ROC AUC and recall at a fixed false positive rate (FPR) need no threshol
 \begin{table*}[t]
 \centering
 \caption{Test results. Precision (P), recall (R) and F1 at the threshold chosen on the eval split. Bold: best per
-column. Reference rows: PR AUC reported by Huot et al.~\cite{huot2022}; their LR and RF also use the 8 neighbouring
-pixels of every channel, and their numbers come from their own pipeline.}
+column. PR AUC reported by Huot et al.~\cite{huot2022} for their models is in Table~\ref{tab:relwork}.}
 \label{tab:results}
 \begin{tabular}{lccccccc}
 \hline
@@ -28,14 +27,17 @@ XGBoost (raw) & 0.145 & 0.795 & 0.337 & 0.257 & 0.292 & 0.267 & 0.375 \\
 XGBoost (tuned, 35 features) & \textbf{0.257} & \textbf{0.906} & 0.242 & \textbf{0.526} & \textbf{0.332} & \textbf{0.388} & \textbf{0.675} \\
 LightGBM (tuned, 35 features) & 0.248 & 0.903 & 0.242 & 0.520 & 0.331 & 0.384 & 0.671 \\
 \hline
-\multicolumn{8}{l}{\textit{Huot et al.~\cite{huot2022}, PR AUC only}} \\
-Persistence & 0.115 & & & & & & \\
-Logistic regression (+ 8 neighbours) & 0.198 & & & & & & \\
-Random forest (+ 8 neighbours) & 0.225 & & & & & & \\
-CNN autoencoder & 0.284 & & & & & & \\
-\hline
 \end{tabular}
 \end{table*}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.72\textwidth]{figures/eval_prob_maps_selected.png}
+\caption{Tuned XGBoost on four test patches that show its typical behaviour (all ten random patches are in
+Fig.~\ref{fig:maps_all}). Columns: fire on day $t$, true fire on day $t+1$, predicted probability (arrow: direction the
+wind blows to), and prediction at the eval threshold. Drawn from the rebuilt model (Appendix~\ref{app:checks}).}
+\label{fig:maps}
+\end{figure*}
 
 The tuned XGBoost is the best model on every threshold-free metric (Table~\ref{tab:results}): PR AUC 0.257 against
 0.145--0.157 for the raw-channel models and 0.106 for persistence. LightGBM is close behind (0.248), so the features
@@ -43,7 +45,10 @@ matter far more than the boosting library; the ablation (Table~\ref{tab:ablation
 fire-neighbourhood group. At the eval threshold the tuned models find 52--53\% of next-day fire at 24\% precision,
 about twice the recall of the baselines (26--27\%), and reach the best F1 (0.332); a threshold tuned on test would give
 only 0.358, so the eval threshold transfers well. Our persistence (0.106) is close to the paper's (0.115); the tuned
-XGBoost is above their neighbour-feature random forest (0.225) but below their CNN (0.284).
+XGBoost is above their neighbour-feature random forest (0.225) but below their CNN (0.284). Both values lie inside our
+95\% bootstrap interval over fire events (0.188--0.325, Appendix~\ref{app:checks}), so neither difference is significant
+on test-sampling grounds. The same check shows that the gap to LightGBM is small but consistent (0.007, higher in 99\%
+of paired resamples), and the gain over the raw-channel models clear (0.10, interval 0.09--0.12).
 
 \begin{figure}[t]
 \centering
@@ -55,28 +60,20 @@ Persistence outputs only 0 or 1, so it is a single point.}
 
 The tuned models stay above every baseline along the whole PR curve (Fig.~\ref{fig:pr}). The raw-channel models rank
 already-burning pixels first and have little signal for new fire, so their operating points sit on top of persistence.
-ROC AUC is 0.795--0.906 for every learned model while PR AUC stays at or below 0.257: with one fire pixel per 80, a model
-can raise many false alarms and still keep the FPR small, but precision drops with every false alarm. A random model
-gets ROC AUC 0.5 but PR AUC only 0.0125 (the fire rate), so PR AUC is the more informative metric.
+ROC AUC is 0.795--0.906 for every learned model while PR AUC stays at or below 0.257; Section~\ref{sec:theory_pr}
+explains why PR AUC is the more informative metric at this prevalence.
 
 \subsection{Probability maps}
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/eval_prob_maps.png}
-\caption{Tuned XGBoost on 10 random test patches (seed 0). Per patch: fire on day $t$, true fire on day $t+1$,
-predicted probability (arrow: direction the wind blows to), and prediction at the eval threshold (red: true positive,
-orange: false positive, blue: false negative, grey: unknown).}
-\label{fig:maps}
-\end{figure*}
-
 The predicted probability is a smooth halo around the day-$t$ fire (Fig.~\ref{fig:maps}), following its shape and
-stretched slightly toward where the wind blows (patches 33 and 69). After thresholding, the prediction is roughly the
-day-$t$ fire grown by a few kilometres. It catches fire that stays or creeps outward (patches 290, 856, 1432), paints a
-false-positive ring around small fires that shrink (patch 515: 48 to 29 burning pixels, 114 false positives), and
-misses fire that appears away from the day-$t$ fire: in patches 120, 443, 1071 and 1369 not one next-day fire pixel is
-found. The probabilities are not calibrated (training used a 5:1 subsampled table with class weighting), which is why
-the eval threshold is as high as 0.915; only the ranking and the threshold affect the metrics.
+stretched slightly toward where the wind blows (Fig.~\ref{fig:maps}d; patch 33 in Fig.~\ref{fig:maps_all}). After
+thresholding, the prediction is roughly the day-$t$ fire grown by a few kilometres. It catches fire that stays or creeps
+outward (Fig.~\ref{fig:maps}a; also patches 856 and 1432), paints a false-positive ring around small fires that shrink
+(Fig.~\ref{fig:maps}b, patch 515: 48 to 29 burning pixels, 114 false positives), and misses fire that appears away from
+the day-$t$ fire (Fig.~\ref{fig:maps}c): in patches 120, 443, 1071 and 1369 not one next-day fire pixel is found.
+Unknown pixels (grey) are left out of every metric. The raw scores are shifted by the 5:1 subsampled table and the class
+weighting, which is why the eval threshold is as high as 0.915; undoing that shift in closed form gives probabilities
+close to the observed fire rate (Section~\ref{sec:theory_imb}). Only the ranking and the threshold affect the metrics.
 
 \subsection{Interpretability and physical plausibility}
 
@@ -88,7 +85,7 @@ the prediction toward fire; colour shows the feature value.}
 \label{fig:shap}
 \end{figure}
 
-SHAP values of the refitted model (identical predictions, Fig.~\ref{fig:shap}) confirm the gain ranking in the Feature
+SHAP values~\cite{lundberg2017}, computed with TreeSHAP~\cite{lundberg2020}, of the refitted model (identical predictions, Fig.~\ref{fig:shap}) confirm the gain ranking in the Feature
 Engineering section: the fire-neighbourhood group contributes 2.29 log-odds on average, against 0.40 for weather, 0.22
 for vegetation, 0.20 for terrain and 0.13 for human features. Most effects have the expected sign (Spearman $\rho$
 between feature value and SHAP value):
@@ -130,7 +127,7 @@ Labels give the share of all next-day fire in each band.}
 
 At the eval threshold the tuned XGBoost makes 44\,409 true positives, 138\,714 false positives and 39\,922 false
 negatives. \textbf{False positives} form a halo around dying fires: 88.8\% lie within 2\,km of day-$t$ fire, and 53.1\%
-come from patches whose fire shrinks, although only 38.4\% of patches shrink; only 35.3\% of day-$t$ fire pixels still
+come from patches whose fire shrinks, although only 38.4\% of test patches shrink; only 35.3\% of day-$t$ fire pixels still
 burn on day $t+1$. The five worst patches all hold large, scattered fires (255--468 burning pixels) that shrink the next
 day. Nothing in the inputs says which fires will die down (no burnt-out fuel, containment or next-day weather).
 \textbf{False negatives} come from long-range spread and sudden growth. Recall falls sharply with distance from the
