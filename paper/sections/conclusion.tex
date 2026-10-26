@@ -34,8 +34,9 @@ Phase~2 will address the limits found above.
   loss can replace negative subsampling.
 \item \textbf{Multi-day inputs.} Several days of fire history, as in WildfireSpreadTS~\cite{gerard2023},
   may help tell growing fires from dying ones.
-\item \textbf{Split leakage.} The dataset has no fire identifier, and the test split alone contains
-  40 exact duplicate patches. We will check whether one fire appears in more than one split.
+\item \textbf{Location-disjoint splits.} 30\% of test patches share their location with a training
+  patch, and these are easier for every model. A split that keeps locations or fire events apart
+  would give a stricter test.
 \item \textbf{Uncertain labels.} Cloud and smoke pixels ($-1$) are now ignored; modelling them, for
   example by filling them from neighbouring days, would use more of the data.
 \end{itemize}

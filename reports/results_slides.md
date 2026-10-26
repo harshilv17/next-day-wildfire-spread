@@ -10,7 +10,7 @@ Figures are in `reports/figures/`. All numbers are on the test split.
 
 - Tuned XGBoost: **PR AUC 0.257**, vs 0.145-0.157 for raw-channel models and 0.106 for persistence (LightGBM 0.248)
 - Finds 39% of next-day fire at 1% FPR and 68% at 5% FPR; best F1 0.332
-- Above Huot et al.'s neighbour RF (0.225), below their CNN (0.284)
+- Between Huot et al.'s neighbour RF (0.225) and their CNN (0.284)
 
 ---
 

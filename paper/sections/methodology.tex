@@ -17,7 +17,14 @@ We use the official train/eval/test split released with the dataset
 (14\,979 / 1\,877 / 1\,689 patches). Huot et al.\ assign every calendar week between 2012 and 2020
 at random to train, eval or test in an 8:1:1 ratio and leave a one-day buffer between weeks, so
 the splits are separated in time and a fire's day-$t$/day-$t{+}1$ pair never straddles two splits.
-All features are computed inside a single patch, so no information crosses split boundaries.
+All features are computed inside a single patch, so no feature uses pixels from another sample. The
+week-based split separates samples in time, but it does not guarantee spatial or fire-event
+independence: a long-lived fire can appear in weeks assigned to different splits. We checked this on
+the elevation grid: 503 of the 1\,689 test patches (30\%) cover exactly the same $64\times64$ location as
+a training patch, 38 of them with the same day-$t$ fire mask, but none is an identical sample. These
+patches are easier for every model, persistence included (0.151 against 0.097), and the ranking is
+unchanged on new locations alone (tuned XGBoost 0.243, LightGBM 0.234, raw random forest 0.145,
+persistence 0.097).
 The eval split is used only for early stopping and hyperparameter selection;
 the test split is scored once per final model.
 
@@ -32,7 +39,7 @@ stored south-up (the row index grows northward). Steep slopes facing the last ro
 greener than those facing the first row (mean NDVI 0.596 vs.\ 0.555, while east- and west-facing
 slopes differ by only 0.008), as expected for pole-facing slopes in the Northern Hemisphere, and only
 this orientation makes next-day fire more frequent downwind than upwind in every wind-speed band
-(from 1.1$\times$ in calm wind to 2.9$\times$ at 8\,m/s or more, 5\,km from the fire). All
+(from 1.1$\times$ in calm wind to 3.1$\times$ at 8\,m/s or more, 5\,km from the fire; Results section). All
 direction-dependent features (upwind fire, wind alignment, aspect) use this orientation. The bounds are constants, not statistics fitted on the data, so clipping
 introduces no leakage. No normalisation is applied for the tree models, which are invariant to
 monotone rescaling of individual features.
@@ -117,25 +124,6 @@ ablation study. Unless stated, local statistics use a $k\times k$ window with re
 \texttt{PrevFireMask} $=-1$ is treated as no fire, and wind direction $\theta$ is the direction
 the wind blows \emph{from} (degrees clockwise from north).
 
-\textbf{Fire neighbourhood.} Spread happens at the fire front, so we measure burning density
-around each pixel at three scales, the distance to the nearest burning pixel, and the fraction of
-the patch already burning. Three wind-aware features look for fire $k \in \{2,4,8\}$ pixels upwind (8 because 40\% of
-next-day fire pixels lie more than 5\,km from day-$t$ fire, per our EDA), and an
-alignment score is the cosine between the upwind direction and the direction to the nearest fire
-($+1$ when the wind pushes the nearest fire toward the pixel).
-
-\textbf{Weather.} Wind direction is circular, so it is replaced by $u$/$v$ components.
-Specific humidity is converted to vapour pressure $e = qp/(0.622+0.378q)$, with surface pressure
-$p$ from elevation (FAO-56). Saturation vapour pressure at the daily maximum temperature,
-$e_s = 0.6108\exp\!\big(17.27T/(T+237.3)\big)$ kPa, gives the vapour pressure deficit
-$e_s - e$ and minimum relative humidity $e/e_s$, both direct measures of atmospheric drying.
-We also add diurnal temperature range and the interaction \texttt{erc}$\times$wind speed.
-
-\textbf{Vegetation, terrain, human.} NDVI (stored $\times10^4$) is summarised by its local mean,
-standard deviation and anomaly. Terrain adds slope and aspect from the elevation gradient and
-elevation relative to the $9\times9$ neighbourhood (ridges vs.\ valleys). Population is
-smoothed over $9\times9$ pixels as a proxy for settlement proximity and suppression effort.
-
 \begin{table*}[t]
 \centering
 \caption{Engineered features. AUC: univariate ROC AUC on the eval split, $\max(a, 1-a)$,
@@ -173,6 +161,25 @@ Human & \texttt{population} (raw) & people / km$^2$ & 0.601 ($-$) \\
 \hline
 \end{tabular}
 \end{table*}
+
+\textbf{Fire neighbourhood.} Spread happens at the fire front, so we measure burning density
+around each pixel at three scales, the distance to the nearest burning pixel, and the fraction of
+the patch already burning. Three wind-aware features look for fire $k \in \{2,4,8\}$ pixels upwind (8 because 40\% of
+next-day fire pixels lie more than 5\,km from day-$t$ fire, per our EDA), and an
+alignment score is the cosine between the upwind direction and the direction to the nearest fire
+($+1$ when the wind pushes the nearest fire toward the pixel).
+
+\textbf{Weather.} Wind direction is circular, so it is replaced by $u$/$v$ components.
+Specific humidity is converted to vapour pressure $e = qp/(0.622+0.378q)$, with surface pressure
+$p$ from elevation (FAO-56). Saturation vapour pressure at the daily maximum temperature,
+$e_s = 0.6108\exp\!\big(17.27T/(T+237.3)\big)$ kPa, gives the vapour pressure deficit
+$e_s - e$ and minimum relative humidity $e/e_s$, both direct measures of atmospheric drying.
+We also add diurnal temperature range and the interaction \texttt{erc}$\times$wind speed.
+
+\textbf{Vegetation, terrain, human.} NDVI (stored $\times10^4$) is summarised by its local mean,
+standard deviation and anomaly. Terrain adds slope and aspect from the elevation gradient and
+elevation relative to the $9\times9$ neighbourhood (ridges vs.\ valleys). Population is
+smoothed over $9\times9$ pixels as a proxy for settlement proximity and suppression effort.
 
 Engineered features consistently carry more signal than the raw channels they are built from:
 \texttt{dist\_to\_fire} reaches a univariate AUC of 0.866 against 0.593 for the raw fire mask,

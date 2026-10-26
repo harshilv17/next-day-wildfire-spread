@@ -1,6 +1,6 @@
 """XGBoost + LightGBM on mode="full": random search scored on eval, final run on test.
 
-Run: python -m src.train [xgboost|lightgbm]   (both by default, ~1 h on a laptop)
+Run: python -m src.train [xgboost|lightgbm]   (both by default, ~20 min on a laptop)
 Out: reports/tuning_{model}.csv, reports/best_params.json, test rows in reports/results.csv
 
 Each config trains on the subsampled train table, early-stops on 1M random labelled eval pixels,
