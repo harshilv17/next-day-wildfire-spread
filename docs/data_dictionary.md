@@ -28,7 +28,7 @@ Sources, units and native resolutions are from `notebooks/notes_dataset.md`.
    not min/max, because the raw export contains artefacts such as wind direction down to
    -505,870 degrees and temperatures up to 1,230 K. Observed min/max, the share of out-of-range
    pixels and the fix for each channel are in the table in
-   [`reports/data_quality.md`](../reports/data_quality.md).
+   [`data_quality.md`](data_quality.md).
 2. 0.23% of `th` values lie outside [0, 360). `src/features.py` wraps them with `th % 360`
    instead of clipping, because direction is circular. After wrapping, p1 to p99 is 32 to 329.
 3. 9.8% of `pr` values are negative (an export artefact); `src/features.py` clips `pr` at 0.
