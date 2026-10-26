@@ -60,7 +60,7 @@
 We predict which areas an active wildfire will burn the next day, using the Next Day Wildfire Spread
 dataset (18\,545 patches of U.S.\ fires at 1\,km resolution), where only 1.1\% of pixels burn on day $t+1$. We
 keep a per-pixel model and add 23 engineered spatial features, such as distance to the nearest fire and
-fire upwind. Tuned XGBoost reaches a test PR AUC of 0.257 (95\% bootstrap interval over fire events 0.19-0.33),
+fire upwind. Tuned XGBoost reaches a test PR AUC of 0.257 (95\% bootstrap interval over fire events 0.19--0.33),
 compared with 0.106 for persistence. The
 dataset authors report 0.225 for a random forest and 0.284 for a CNN, from a different training pipeline,
 so these are reference points rather than a controlled comparison. Ablation and learning curves show that the
