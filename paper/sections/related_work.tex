@@ -58,7 +58,7 @@ ordering: spatial and temporal models beat pixel models.
 \subsection{Learned spread models on NDWS}
 
 \textbf{Huot et al.~\cite{huot2022}} introduce Next Day Wildfire Spread (NDWS): 18\,545 fire events over
-the contiguous U.S.\ (2012-2020), each a $64\times64$\,km patch at 1\,km with 12 day-$t$ inputs and the
+the contiguous U.S.\ (2012--2020), each a $64\times64$\,km patch at 1\,km with 12 day-$t$ inputs and the
 day-$(t{+}1)$ MODIS fire mask. Whole weeks are assigned to train, eval and test in an 8:1:1 ratio. On PR
 AUC, persistence scores 0.115, logistic regression 0.198, and a random forest of depth 15 scores 0.225;
 both pixel models see each pixel and its eight neighbours. A convolutional autoencoder that sees the
@@ -90,7 +90,7 @@ per-pixel XGBoost reaches 0.257 with engineered spatial features.
 eval data only, and give bootstrap intervals. Their re-run of the convolutional autoencoder reaches 0.327
 and a U-Net 0.346, and their best ensemble 0.379. \textbf{Han et al.~\cite{han2026}} (FireSenseNet) report
 PR AUC 0.3435, but choose their F1 threshold on the test set. They also show that predicting the union of
-both days' fire and setting uncertain labels to 0 inflate F1 by 44-50\%, as in~\cite{luo2026}.
+both days' fire and setting uncertain labels to 0 inflate F1 by 44--50\%, as in~\cite{luo2026}.
 \relevance{} these are the closest comparisons to our protocol, but neither is peer-reviewed.
 
 \begin{table*}[t]
@@ -164,7 +164,7 @@ patches and PR AUC, the protocol we follow.
 \textbf{Spatial features help trees.} The NDWS work we found is almost entirely deep spatial models.
 Trees appear only as Huot et al.'s neighbour-window baselines (0.225) and as an XGBoost baseline at 0.06. Our
 per-pixel XGBoost with engineered spatial features reaches 0.257. That is well above the 0.06 baseline and
-above Huot et al.'s 0.225, although our 95\% interval over fire events (0.188-0.325,
+above Huot et al.'s 0.225, although our 95\% interval over fire events (0.188--0.325,
 Appendix~\ref{app:checks}) also contains 0.225. The ablation traces the gain to the fire-neighbourhood
 features.
 

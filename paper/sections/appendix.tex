@@ -149,18 +149,19 @@ because a few large fires hold most of the fire pixels, and they are the ones we
 \label{tab:ci}
 \small
 \renewcommand{\arraystretch}{1.12}
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccc}
 \toprule
 \rowcolor{tblhead}
 \textbf{Model} & \textbf{PR AUC} & \textbf{Patches} & \textbf{Events} \\
 \midrule
-Persistence & 0.1065 & 0.097-0.118 & 0.059-0.161 \\
-Logistic regr.\ (raw) & 0.1457 & 0.132-0.162 & 0.084-0.203 \\
-Random forest (raw) & 0.1558 & 0.144-0.169 & 0.096-0.212 \\
-XGBoost (raw) & 0.1455 & 0.136-0.157 & 0.095-0.198 \\
+Persistence & 0.1065 & 0.097--0.118 & 0.059--0.161 \\
+Logistic regr.\ (raw) & 0.1457 & 0.132--0.162 & 0.084--0.203 \\
+Random forest (raw) & 0.1558 & 0.144--0.169 & 0.096--0.212 \\
+XGBoost (raw) & 0.1455 & 0.136--0.157 & 0.095--0.198 \\
 \rowcolor{tblours}
-XGBoost (tuned) & 0.2576 & 0.242-0.274 & 0.188-0.325 \\
-LightGBM (tuned) & 0.2503 & 0.235-0.267 & 0.180-0.317 \\
+XGBoost (tuned) & 0.2576 & 0.242--0.274 & 0.188--0.325 \\
+LightGBM (tuned) & 0.2503 & 0.235--0.267 & 0.180--0.317 \\
 \bottomrule
 \end{tabular}
 \end{table}
