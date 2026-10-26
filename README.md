@@ -34,7 +34,9 @@ notebooks/
   notes_dataset.md     dataset notes from the paper
 docs/
   data_dictionary.md   channels, units, sources, value ranges
-paper/             IEEE LaTeX report (main.tex, sections/, references.bib)
+  data_quality.md      data quality notes
+paper/             IEEE LaTeX report (main.tex, sections/, references.bib, main.pdf)
+slides/            presentation deck (slides.tex, slides.pdf)
 reports/
   figures/         plots
   checks/          confidence intervals, calibration, learning curves, reproducibility check
@@ -58,6 +60,13 @@ Then the notebooks:
 ```bash
 jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
 jupyter nbconvert --to notebook --execute --inplace notebooks/02_evaluation.ipynb
+```
+
+## Build the report and slides
+
+```bash
+cd paper && tectonic main.tex     # -> paper/main.pdf
+cd slides && tectonic slides.tex  # -> slides/slides.pdf
 ```
 
 ## Results
