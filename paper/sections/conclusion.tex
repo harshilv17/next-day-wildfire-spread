@@ -1,0 +1,52 @@
+% Conclusion and Future Work
+% Numbers come from reports/results_table.md, reports/ablation.csv, reports/checks and the Results section.
+
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+\subsection{Summary}
+We predicted next-day wildfire spread on the NDWS dataset with per-pixel gradient-boosted trees and
+engineered spatial features. The tuned XGBoost reaches a test PR AUC of 0.257 and a ROC AUC of 0.906,
+against 0.145-0.157 for models trained on the raw channels and 0.106 for persistence. At a 5\% false
+positive rate it finds 68\% of next-day fire. LightGBM scores 0.248, so the result depends on the
+features more than on the boosting library. Our score lies between the neighbour-feature random forest
+of Huot et al.\ (0.225) and their CNN (0.284), and below recent U-Nets on the same split (0.346 in a
+preprint~\cite{esparza2026}). Since these models come from different pipelines, this places our result
+rather than ranking it, and our 95\% bootstrap interval over fire events (0.188-0.325) contains both of
+Huot et al.'s values.
+
+Three findings explain this result. First, the spatial features carry the signal. With fixed
+hyperparameters, removing the fire-neighbourhood group drops PR AUC from 0.248 to 0.048, and that group
+alone already reaches 0.218. Twenty random configurations per model changed eval PR AUC by only about
+0.01, and training on 20 times less data gives almost the same eval score, so the remaining error lies
+in the input representation rather than in tuning or data size. Second, the model behaves
+physically: risk falls with distance to fire, rises with dry air and strong wind, and is pushed
+downwind. In the training data, next-day fire 5\,km downwind is up to 3.1 times more frequent than
+5\,km upwind in strong wind (Results section). Third, correct evaluation matters at 1\% prevalence. PR AUC, thresholds chosen on eval,
+and scores per fire event give a much more honest picture than accuracy or ROC AUC.
+
+\subsection{Limitations}
+A per-pixel model with fixed-radius summaries learns a halo around today's fire. Recall is 0.99 for
+pixels already burning, 0.65 at 2\,km and zero beyond 5\,km, where 64\% of the missed fire lies. False
+alarms gather around fires that die down the next day: 89\% lie within 2\,km of day-$t$ fire, and
+nothing in the inputs says which fires will be contained. Scored by event, the model still beats every
+baseline (mean PR AUC 0.187), but at the pooled F1 threshold it finds fire in only 48\% of events,
+fewer than persistence (61\%). Its raw scores are shifted by subsampling and class weighting. Undoing the shift in closed form gives
+probabilities close to the observed fire rate overall, but up to about 3 times too low for the lowest-risk
+pixels.
+
+Two limits concern the evaluation itself. Every model was trained once, with one seed, on one split.
+Resampling fire events gives wide intervals (0.188-0.325 for XGBoost) because a few large fires hold most
+of the fire pixels. Paired resamples still separate the models (Appendix~\ref{app:checks}), and a rebuild
+on another machine reproduced every PR AUC within 0.002. The week-based split separates samples in time, but a long-lived fire can appear in
+weeks assigned to different splits, and we have not checked how often this happens.
+
+\subsection{Future work: Phase~2}
+Phase~2 moves the spatial reasoning from hand-made features into the model. A convolutional
+network such as U-Net~\cite{ronneberger2015} sees the whole patch, including the shape of the fire
+front and the wind field, which is exactly what the per-pixel model lacks. Because such a network
+computes its loss on every pixel, it must handle the full 90:1 imbalance, and focal
+loss~\cite{lin2017} is a natural candidate. Further directions are multi-day inputs (the best model on
+WildfireSpreadTS uses five input days~\cite{gerard2023}); decision thresholds chosen per event, so that
+small fires are not ignored; and calibration checked per region and fire size, so that the
+probabilities can be read as risk.
