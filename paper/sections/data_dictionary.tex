@@ -1,0 +1,39 @@
+% Data dictionary (Piyush). \input from dataset_eda.tex. Same content as docs/data_dictionary.md.
+\begin{table*}[t]
+\centering
+\caption{Input channels and label. Value range is the 1st--99th percentile over the training split.}
+\label{tab:datadict}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llllll}
+\hline
+Name & Description & Unit & Source & Native res. & Range (p1--p99) \\
+\hline
+\texttt{elevation} & Terrain height & m & SRTM & 30\,m & 2 to 2\,954 \\
+\texttt{th} & Wind direction (from) & degrees & GRIDMET & 4\,km & 31 to 331$^{a}$ \\
+\texttt{vs} & Wind speed & m/s & GRIDMET & 4\,km & 1.39 to 7.54 \\
+\texttt{tmmn} & Minimum temperature & K & GRIDMET & 4\,km & 264.7 to 297.1 \\
+\texttt{tmmx} & Maximum temperature & K & GRIDMET & 4\,km & 277.6 to 312.7 \\
+\texttt{sph} & Specific humidity & kg/kg & GRIDMET & 4\,km & 0.0012 to 0.0178 \\
+\texttt{pr} & Precipitation (daily total) & mm & GRIDMET & 4\,km & $-0.02$ to 7.52 \\
+\texttt{pdsi} & Palmer drought index & index & GRIDMET Drought & 4\,km & $-5.14$ to 5.25 \\
+\texttt{NDVI} & Vegetation index & index $\times 10^4$ & VIIRS VNP13A1 & 500\,m & 0 to 8\,936 \\
+\texttt{population} & Population density & people/km$^2$ & GPWv4 & 1\,km & 0 to 851 \\
+\texttt{erc} & Energy release component & index & GRIDMET (NFDRS) & 4\,km & 11.3 to 104.1 \\
+\texttt{PrevFireMask} & Active fire on day $t$ & class & MODIS MOD14A1 & 1\,km & $\{-1, 0, 1\}^{b}$ \\
+\hline
+\texttt{FireMask} (label) & Active fire on day $t{+}1$ & class & MODIS MOD14A1 & 1\,km & $\{-1, 0, 1\}^{b}$ \\
+\hline
+\end{tabular}
+
+\vspace{2pt}
+\begin{minipage}{0.92\textwidth}
+\footnotesize
+Percentiles are used instead of min/max because the raw export contains artefacts (e.g.\ wind
+direction down to $-505\,870^\circ$, temperatures up to 1\,230\,K); observed extremes and their
+handling are listed in \texttt{reports/data\_quality.md} and Table~\ref{tab:clip}.
+$^{a}$Wrapped with $\theta \bmod 360$ in the features (32 to 329 after wrapping).
+$^{b}$1 = fire, 0 = no fire, $-1$ = uncertain (cloud or smoke); $-1$ label pixels are ignored in
+training and metrics.
+\end{minipage}
+\end{table*}
