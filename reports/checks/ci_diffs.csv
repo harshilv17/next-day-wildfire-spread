@@ -1,0 +1,5 @@
+a,b,diff,lo95,hi95,share_a_better
+xgboost,lightgbm,0.0073,0.0014,0.0110,0.9920
+xgboost,rf_raw,0.1018,0.0883,0.1194,1.0000
+lightgbm,rf_raw,0.0945,0.0810,0.1134,1.0000
+rf_raw,persistence,0.0493,0.0350,0.0551,1.0000

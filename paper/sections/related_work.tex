@@ -163,8 +163,10 @@ patches and PR AUC, the protocol we follow.
 
 \textbf{Spatial features help trees.} The NDWS work we found is almost entirely deep spatial models.
 Trees appear only as Huot et al.'s neighbour-window baselines (0.225) and as an XGBoost baseline at 0.06. Our
-per-pixel XGBoost with engineered spatial features reaches 0.257, above both, and the ablation traces this
-to the fire-neighbourhood features.
+per-pixel XGBoost with engineered spatial features reaches 0.257. That is well above the 0.06 baseline and
+above Huot et al.'s 0.225, although our 95\% interval over fire events (0.188-0.325,
+Appendix~\ref{app:checks}) also contains 0.225. The ablation traces the gain to the fire-neighbourhood
+features.
 
 \textbf{Spatial models are still ahead.} Huot et al.'s CNN (0.284) and recent U-Nets (0.346 in a
 preprint) score higher. This gap is what motivates Phase~2: a spatial model that sees the whole patch and

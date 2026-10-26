@@ -58,12 +58,14 @@
 % Abstract as a heading with plain text below (instead of IEEE's inline bold "Abstract-")
 \section*{Abstract}
 We predict which areas an active wildfire will burn the next day, using the Next Day Wildfire Spread
-dataset (18\,545 U.S.\ fire events at 1\,km resolution), where only 1.1\% of pixels burn on day $t+1$. We
+dataset (18\,545 patches of U.S.\ fires at 1\,km resolution), where only 1.1\% of pixels burn on day $t+1$. We
 keep a per-pixel model and add 23 engineered spatial features, such as distance to the nearest fire and
-fire upwind. Tuned XGBoost reaches a test PR AUC of 0.257, compared with 0.106 for persistence. The
+fire upwind. Tuned XGBoost reaches a test PR AUC of 0.257 (95\% bootstrap interval over fire events 0.19-0.33),
+compared with 0.106 for persistence. The
 dataset authors report 0.225 for a random forest and 0.284 for a CNN, from a different training pipeline,
-so these are reference points rather than a controlled comparison. Ablation shows that the spatial features
-carry the signal, while tuning changes the score by only about 0.01. The model finds fire near the
+so these are reference points rather than a controlled comparison. Ablation and learning curves show that the
+spatial features carry the signal: tuning changes the score by only about 0.01, and 20 times less training
+data barely changes it. The model finds fire near the
 existing front but misses spread beyond 5\,km, which motivates a spatial deep model in Phase~2.
 
 \noindent\textit{Index terms:} wildfire spread, remote sensing, gradient boosting, class imbalance,

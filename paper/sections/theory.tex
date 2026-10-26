@@ -169,14 +169,28 @@ loss reduces to (\ref{eq:weighted_ll}).
 \label{fig:th_imbalance}
 \end{figure}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.68\columnwidth]{figures/th_calibration.png}
+\caption{Calibration of the tuned XGBoost on test after undoing the prior shift with
+(\ref{eq:inverse_shift}). Each point is one tenth of the test pixels, ordered by score; log scales.}
+\label{fig:th_calibration}
+\end{figure}
+
 \begin{projectbox}
 The training table keeps every fire pixel and 5 no-fire pixels per fire pixel, so $r = 5/89.9 = 0.056$,
 and fire rows get $w = 5$ (\texttt{scale\_pos\_weight}). The odds are therefore multiplied by
 $w/r = 89.9$, and the model trains as if the classes were balanced (Fig.~\ref{fig:th_imbalance}). This
 explains the high F1 threshold of 0.915 chosen on eval: by (\ref{eq:inverse_shift}) it corresponds to a
 probability of 0.107 on the true scale, while a score of 0.5 corresponds to 0.011, the training fire
-rate. These values assume the model is calibrated on its training distribution; we have not measured
-its calibration, so they explain the threshold rather than give usable risk values. We did not use focal loss, because the boosting libraries would need it as a custom objective and weighting
+rate. We checked the correction on test with a retrained copy of the model (Appendix~\ref{app:checks}).
+After (\ref{eq:inverse_shift}), the mean probability is 0.0107 against an observed fire rate of 0.0125,
+and in the top score decile 0.089 against 0.097 (Fig.~\ref{fig:th_calibration}). The corrected values
+are therefore close to true risk and slightly low. Most of the overall gap matches the higher fire rate
+of test (1.25\% against 1.10\% in train); below a corrected value of about 0.002 they are up to about 3 times
+too low.
+
+We did not use focal loss, because the boosting libraries would need it as a custom objective and weighting
 already balances the loss. It is a candidate for Phase~2, where a segmentation network computes its loss
 on every pixel of a patch (Huot et al.\ use a weight of 3 on fire for their CNN~\cite{huot2022}).
 \end{projectbox}
@@ -260,9 +274,25 @@ Across 20 random XGBoost configurations (depth 4 to 10, learning rate 0.023 to 0
 between 0.196 and 0.207, and the 20 LightGBM configurations between 0.189 and 0.203. The settings that
 trade bias against variance therefore move the score by only about 0.01. Changing the inputs moves it far
 more: with the same hyperparameters, removing the fire-neighbourhood features lowers LightGBM's test PR
-AUC from 0.248 to 0.048 (Table~\ref{tab:ablation}). This suggests that the remaining error comes mainly
-from the input representation, since each pixel sees the patch only through fixed-radius summaries, and
-from noise the inputs cannot explain, such as which fires will die down. We have not measured bias and
-variance directly (for example with learning curves), so this is an inference from the tuning and ablation
-results. It is why Phase~2 moves to a spatial model rather than to more tuning.
+AUC from 0.248 to 0.048 (Table~\ref{tab:ablation}).
+
+Learning curves (Fig.~\ref{fig:th_learning}) show where the remaining error lies. Trained on 5\% of the
+training patches (0.2M rows) instead of all of them (3.9M rows), the tuned XGBoost reaches almost the
+same eval PR AUC (0.204 against 0.207), and eval ROC AUC stays between 0.891 and 0.900. More data
+narrows the train-eval gap in ROC AUC from 0.080 to 0.055 only by lowering the training score. More trees
+do the opposite: training ROC AUC keeps rising while eval peaks at 0.898 near 270 trees and falls to
+0.883 at 1000, the variance that early stopping (216 trees) avoids. An eval score that does not move with
+20 times more data means the model is not limited by variance. What remains is bias from the input
+representation, since each pixel sees the patch only through fixed-radius summaries, and noise the inputs
+cannot explain, such as which fires will die down. This is why Phase~2 moves to a spatial model rather
+than to more data or tuning.
 \end{projectbox}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/th_learning_curves.png}
+\caption{Tuned XGBoost, ROC AUC on training rows and on eval. (a) Trained on 5-100\% of the training
+patches. (b) Trees added without early stopping; dashed: the 216 trees used. ROC AUC is shown because the
+training table is subsampled 1:5, which changes PR AUC but not ROC AUC (Section~\ref{sec:theory_pr}).}
+\label{fig:th_learning}
+\end{figure}
