@@ -1,0 +1,3 @@
+model,pr_auc,roc_auc,precision,recall,f1,threshold,best_f1,best_f1_threshold,recall_at_1fpr,recall_at_5fpr,n_pixels,fire_rate
+cnn_base,0.2565,0.8825,0.2391,0.5253,0.3286,0.9133,0.3516,0.9500,0.3788,0.6522,6727699,0.0125
+unet_base,0.2688,0.9289,0.2674,0.5198,0.3531,0.9524,0.3623,0.9674,0.3926,0.7027,6727699,0.0125
