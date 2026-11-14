@@ -1,0 +1,4 @@
+loss,pr_auc,roc_auc,f1,recall_at_1fpr,recall_at_5fpr,eval_pr_auc,best_epoch,epochs_run,eval_pr_auc_mean,eval_pr_auc_std,test_pr_auc_mean,test_pr_auc_std,n_seeds
+bce,0.2579,0.9220,0.3539,0.3842,0.6997,0.2212,5,10,0.2215,0.0032,0.2685,0.0101,3
+focal,0.2694,0.9255,0.3543,0.3965,0.7096,0.2225,7,12,0.2256,0.0028,0.2752,0.0079,3
+bce_dice,0.2694,0.9241,0.3548,0.3945,0.7043,0.2245,6,11,0.2212,0.0036,0.2688,0.0056,3
