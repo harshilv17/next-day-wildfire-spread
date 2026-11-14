@@ -1,0 +1,4 @@
+model,n_seeds,pr_auc_mean,roc_auc_mean,f1_mean,recall_at_1fpr_mean,recall_at_5fpr_mean,pr_auc_std,roc_auc_std,f1_std,recall_at_1fpr_std,recall_at_5fpr_std
+unet_focal,3,0.2752,0.9234,0.3486,0.3975,0.7106,0.0079,0.0031,0.0061,0.0037,0.0053
+cnn_bce,3,0.2489,0.8779,0.3347,0.3778,0.6532,0.0099,0.0111,0.0079,0.0089,0.0060
+xgboost,3,0.2553,0.9054,0.3297,0.3878,0.6734,0.0020,0.0007,0.0002,0.0007,0.0008

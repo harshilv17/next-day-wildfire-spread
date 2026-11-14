@@ -1,0 +1,32 @@
+unet_focal_frac50: unet {'width': 32, 'depth': 3}, loss focal on cuda, pos_weight=91.8
+epoch  1  train loss 0.2072  eval PR AUC 0.1664
+epoch  2  train loss 0.1776  eval PR AUC 0.1794
+epoch  3  train loss 0.1667  eval PR AUC 0.1881
+epoch  4  train loss 0.1584  eval PR AUC 0.1911
+epoch  5  train loss 0.1540  eval PR AUC 0.2072
+epoch  6  train loss 0.1505  eval PR AUC 0.2021
+epoch  7  train loss 0.1472  eval PR AUC 0.2039
+epoch  8  train loss 0.1457  eval PR AUC 0.1993
+epoch  9  train loss 0.1406  eval PR AUC 0.1996
+epoch 10  train loss 0.1377  eval PR AUC 0.2046
+epoch 11  train loss 0.1354  eval PR AUC 0.2138
+epoch 12  train loss 0.1330  eval PR AUC 0.2123
+epoch 13  train loss 0.1337  eval PR AUC 0.2087
+epoch 14  train loss 0.1315  eval PR AUC 0.2155
+epoch 15  train loss 0.1297  eval PR AUC 0.2007
+epoch 16  train loss 0.1277  eval PR AUC 0.2238
+epoch 17  train loss 0.1267  eval PR AUC 0.2119
+epoch 18  train loss 0.1258  eval PR AUC 0.2044
+epoch 19  train loss 0.1247  eval PR AUC 0.2243
+epoch 20  train loss 0.1237  eval PR AUC 0.2170
+epoch 21  train loss 0.1205  eval PR AUC 0.2159
+epoch 22  train loss 0.1207  eval PR AUC 0.2006
+epoch 23  train loss 0.1182  eval PR AUC 0.2000
+epoch 24  train loss 0.1170  eval PR AUC 0.2129
+epoch 25  train loss 0.1137  eval PR AUC 0.2020
+epoch 26  train loss 0.1124  eval PR AUC 0.2091
+epoch 27  train loss 0.1108  eval PR AUC 0.2050
+epoch 28  train loss 0.1134  eval PR AUC 0.1904
+epoch 29  train loss 0.1087  eval PR AUC 0.1857
+early stop, best eval PR AUC 0.2243
+model=unet_focal_frac50, pr_auc=0.2726, roc_auc=0.9210, precision=0.2650, recall=0.5168, f1=0.3503, threshold=0.718839704990387, best_f1=0.3654, best_f1_threshold=0.7542873620986938, recall_at_1fpr=0.3983, recall_at_5fpr=0.7032, n_pixels=6727699, fire_rate=0.0125

@@ -1,0 +1,6 @@
+share,run,test_pr_auc,eval_pr_auc
+0.0500,unet_focal_frac05,0.2408,0.1936
+0.1000,unet_focal_frac10,0.2584,0.2107
+0.2500,unet_focal_frac25,0.2584,0.2124
+0.5000,unet_focal_frac50,0.2726,0.2243
+1.0000,unet_focal,0.2694,0.2225
