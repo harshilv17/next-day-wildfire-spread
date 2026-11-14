@@ -1,0 +1,78 @@
+{
+  "model": "xgboost",
+  "parameters": {
+    "colsample_bytree": 0.6326947454697227,
+    "gamma": 1,
+    "learning_rate": 0.025793638521878843,
+    "max_depth": 6,
+    "min_child_weight": 1,
+    "reg_lambda": 7.220917699605245,
+    "subsample": 0.7274275809805295,
+    "tree_method": "hist",
+    "n_jobs": -1,
+    "random_state": 0,
+    "scale_pos_weight": 4.999538183420177,
+    "n_estimators": 216
+  },
+  "n_folds": 5,
+  "seed": 0,
+  "train_patches": 14979,
+  "eval_patches": 1877,
+  "test_patches": 1689,
+  "fold_patch_counts": [
+    2996,
+    2996,
+    2996,
+    2996,
+    2995
+  ],
+  "fold_runtimes_seconds": [
+    25.08,
+    23.76,
+    23.03,
+    22.88,
+    22.45
+  ],
+  "eval_threshold": 0.9152256846427917,
+  "metrics": {
+    "train_oof": {
+      "pr_auc": 0.30556927798555433,
+      "roc_auc": 0.9491673423503298,
+      "precision": NaN,
+      "recall": NaN,
+      "f1": NaN,
+      "threshold": NaN,
+      "best_f1": 0.3828912246807895,
+      "best_f1_threshold": 0.9462240934371948,
+      "recall_at_1fpr": 0.44968933720205995,
+      "recall_at_5fpr": 0.7917237607668586,
+      "fire_rate": 0.010987084571676034
+    },
+    "eval": {
+      "pr_auc": 0.20706334570136287,
+      "roc_auc": 0.8963108986192958,
+      "precision": NaN,
+      "recall": NaN,
+      "f1": NaN,
+      "threshold": NaN,
+      "best_f1": 0.2928726457007181,
+      "best_f1_threshold": 0.9152256846427917,
+      "recall_at_1fpr": 0.2853870596721056,
+      "recall_at_5fpr": 0.6055324872799579,
+      "fire_rate": 0.013678497837111028
+    },
+    "test": {
+      "pr_auc": 0.25650243521649196,
+      "roc_auc": 0.9058462449860472,
+      "precision": 0.24254393872344146,
+      "recall": 0.526437490365346,
+      "f1": 0.33208662153569957,
+      "threshold": 0.9152256846427917,
+      "best_f1": 0.3578539852502813,
+      "best_f1_threshold": 0.9529196619987488,
+      "recall_at_1fpr": 0.3883743818998945,
+      "recall_at_5fpr": 0.6752202630112295,
+      "fire_rate": 0.012534894917266661
+    }
+  }
+}
