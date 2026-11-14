@@ -1,0 +1,5 @@
+model,all,new,seen
+cnn_bce,0.2591,0.2429,0.3303
+persistence,0.1065,0.0972,0.1508
+unet_focal,0.2694,0.2552,0.3349
+xgboost,0.2576,0.2424,0.3235

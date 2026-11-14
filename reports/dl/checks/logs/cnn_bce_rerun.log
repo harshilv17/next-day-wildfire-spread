@@ -1,0 +1,22 @@
+cnn_bce_rerun: cnn {'width': 32}, loss bce on cuda, pos_weight=90.0
+epoch  1  train loss 0.8625  eval PR AUC 0.1474
+epoch  2  train loss 0.7544  eval PR AUC 0.1679
+epoch  3  train loss 0.7254  eval PR AUC 0.1713
+epoch  4  train loss 0.7105  eval PR AUC 0.1746
+epoch  5  train loss 0.7045  eval PR AUC 0.1653
+epoch  6  train loss 0.6924  eval PR AUC 0.1767
+epoch  7  train loss 0.6880  eval PR AUC 0.1721
+epoch  8  train loss 0.6790  eval PR AUC 0.1757
+epoch  9  train loss 0.6808  eval PR AUC 0.1825
+epoch 10  train loss 0.6740  eval PR AUC 0.1813
+epoch 11  train loss 0.6702  eval PR AUC 0.1845
+epoch 12  train loss 0.6640  eval PR AUC 0.1807
+epoch 13  train loss 0.6600  eval PR AUC 0.1799
+epoch 14  train loss 0.6581  eval PR AUC 0.1863
+epoch 15  train loss 0.6537  eval PR AUC 0.1783
+epoch 16  train loss 0.6770  eval PR AUC 0.1821
+epoch 17  train loss 0.6548  eval PR AUC 0.1845
+epoch 18  train loss 0.6483  eval PR AUC 0.1834
+epoch 19  train loss 0.6460  eval PR AUC 0.1795
+early stop, best eval PR AUC 0.1863
+model=cnn_bce_rerun, pr_auc=0.2619, roc_auc=0.8851, precision=0.2325, recall=0.5317, f1=0.3235, threshold=0.9186827540397644, best_f1=0.3549, best_f1_threshold=0.9584811925888062, recall_at_1fpr=0.3845, recall_at_5fpr=0.6536, n_pixels=6727699, fire_rate=0.0125

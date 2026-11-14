@@ -1,0 +1,199 @@
+% Technical validation of the Phase 2 models
+% Numbers come from reports/dl/checks/*.csv (python reports/dl/checks/dl_checks.py validate);
+% the runs and checks were made on one NVIDIA T4 GPU (Kaggle).
+
+\section{Technical Validation}
+\label{sec:dl_validation}
+
+A single test score can mislead in five ways: another seed may give a different model, the test fires may
+by chance favour one model, the probabilities may not mean what they say, the model may need more data, and
+test patches may repeat training locations. We check each of these for the final U-Net (focal loss), the CNN
+(weighted BCE) and the Phase~1 XGBoost, refitted with its committed hyperparameters to obtain its test
+predictions (PR AUC 0.2576 against the committed 0.2565, Appendix~\ref{app:checks}). All PR AUC values are on
+the official test split, with pixels labelled $-1$ excluded.
+
+\subsection{Seeds}
+
+Each model was trained with seeds 0, 1 and 2 (for XGBoost the seed sets row and column subsampling).
+Table~\ref{tab:dl_seeds} gives the mean and standard deviation. The U-Net is ahead on every metric. The two
+neural networks vary four to five times more between seeds than XGBoost (standard deviation 0.008 to 0.010
+in PR AUC against 0.002), so a single run of a network can be off by about 0.01.
+
+\begin{table*}[t]
+\centering
+\caption{Test results over three seeds (mean $\pm$ standard deviation).}
+\label{tab:dl_seeds}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{lccccc}
+\toprule
+\rowcolor{tblhead}
+\textbf{Model} & \textbf{PR AUC} & \textbf{ROC AUC} & \textbf{F1} & \textbf{R@1\%} & \textbf{R@5\%} \\
+\midrule
+\rowcolor{tblours}
+U-Net (focal) & \textbf{0.275} $\pm$ .008 & \textbf{0.923} $\pm$ .003 & \textbf{0.349} $\pm$ .006 & \textbf{0.398} $\pm$ .004 & \textbf{0.711} $\pm$ .005 \\
+CNN (BCE) & 0.249 $\pm$ .010 & 0.878 $\pm$ .011 & 0.335 $\pm$ .008 & 0.378 $\pm$ .009 & 0.653 $\pm$ .006 \\
+XGBoost & 0.255 $\pm$ .002 & 0.905 $\pm$ .001 & 0.330 $\pm$ .000 & 0.388 $\pm$ .001 & 0.673 $\pm$ .001 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Reproducibility}
+
+We retrained the seed-0 U-Nets and CNN a second time with the same seed, settings and GPU. No rerun
+reproduced its predictions: the mean change per pixel was 0.03 to 0.07, the kept epoch moved by up to four
+epochs, and test PR AUC changed by $-0.022$ to $+0.013$. GPU kernels that add numbers in a varying order make
+training non-deterministic, so on a GPU the same seed does not give the same model, and here the spread of
+reruns is as large as the spread of seeds. Such run-to-run variance can be as large as the differences between
+methods being compared~\cite{bouthillier2021}. We therefore report means over seeds and paired
+comparisons rather than single runs. Across hardware, the same configuration agrees within this noise: the
+BCE U-Net reaches 0.269 $\pm$ 0.010 on the T4 against 0.269 for the reference run on an Apple GPU. Bit-exact
+reruns would need deterministic algorithms in PyTorch, at a cost in speed.
+
+\subsection{Bootstrap confidence intervals}
+
+As in Phase~1 (Appendix~\ref{app:checks}), we resample the test set 1\,000 times~\cite{efron1979}, either by
+patch or by whole fire event (the 257 events of Section~\ref{sec:events}), and recompute PR AUC each time.
+Table~\ref{tab:dl_ci} and Fig.~\ref{fig:dl_ci} give the intervals for the seed-0 models. As in Phase~1, the
+event intervals are wide (about $\pm$0.06), because a few large fires hold most of the fire pixels, and
+those of the three models overlap.
+
+\begin{table}[t]
+\centering
+\caption{Test PR AUC of the seed-0 models with 95\% bootstrap intervals (1\,000 resamples).}
+\label{tab:dl_ci}
+\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{lccc}
+\toprule
+\rowcolor{tblhead}
+\textbf{Model} & \textbf{PR AUC} & \textbf{Patches} & \textbf{Events} \\
+\midrule
+\rowcolor{tblours}
+U-Net (focal) & 0.2694 & 0.253-0.286 & 0.211-0.329 \\
+CNN (BCE) & 0.2591 & 0.241-0.277 & 0.180-0.333 \\
+XGBoost & 0.2576 & 0.242-0.273 & 0.190-0.323 \\
+Persistence & 0.1065 & 0.097-0.117 & 0.059-0.161 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\columnwidth]{dl/figures/dl_ci_events.png}
+\caption{Test PR AUC with 95\% intervals over fire events (seed 0); diamonds are the three seeds.}
+\label{fig:dl_ci}
+\end{figure}
+
+Paired intervals are much narrower, because both models are scored on the same resampled fires. Compared
+with XGBoost (seed 0) on the same event resamples, every U-Net seed is better: by 0.012 (0.001 to 0.025)
+for seed 0, 0.014 (0.002 to 0.028) for seed 1 and 0.027 (0.015 to 0.039) for seed 2. The CNN is not: its
+differences are $+0.001$ ($-0.011$ to 0.013), $-0.009$ ($-0.022$ to 0.005) and $-0.018$ ($-0.030$ to
+$-0.008$). The gain comes with the U-Net's architecture rather than with the loss or with neural networks as
+such: trained with the same BCE loss, the U-Net still reaches 0.269 $\pm$ 0.010 against 0.249 $\pm$ 0.010
+for the CNN. The U-Net sees a $44\times44$-pixel window around each pixel, the CNN only $9\times9$, which is
+about the local context of the Phase~1 neighbourhood features, and the CNN scores about the same as XGBoost.
+
+\subsection{Calibration}
+
+Training weights fire pixels by $w = 90.0$ and keeps every pixel, so by the prior-shift argument of
+Section~\ref{sec:theory_imb} (with $r = 1$) the raw scores overstate the odds of fire by about 90, and we
+undo this with (\ref{eq:inverse_shift}). Table~\ref{tab:dl_cal} gives the Brier score~\cite{brier1950}, the mean
+squared difference between probability and outcome, and the Brier skill score against always predicting
+the training fire rate (1.10\%).
+
+\begin{table}[t]
+\centering
+\caption{Calibration on test (seed 0): Brier score of the raw and corrected probabilities, skill score
+(BSS) and expected calibration error (ECE) over deciles of the corrected probability.}
+\label{tab:dl_cal}
+\small
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{lccccc}
+\toprule
+\rowcolor{tblhead}
+\textbf{Model} & \textbf{Raw} & \textbf{Corrected} & \textbf{BSS} & \textbf{ECE} & \textbf{Mean $p$} \\
+\midrule
+U-Net (focal) & 0.1067 & 0.0119 & 0.043 & 0.0090 & 0.0061 \\
+CNN (BCE) & 0.0807 & 0.0104 & 0.159 & 0.0029 & 0.0113 \\
+XGBoost & 0.0856 & 0.0104 & 0.159 & 0.0019 & 0.0107 \\
+\midrule
+\multicolumn{6}{l}{Always 1.10\%: Brier 0.0124; observed fire rate on test 0.0125.} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\columnwidth]{dl/figures/dl_calibration.png}
+\caption{Reliability of the corrected probabilities on test: mean probability against observed fire rate
+in each tenth of the pixels (log scales).}
+\label{fig:dl_cal}
+\end{figure}
+
+The raw scores are badly calibrated for every model, with a Brier score six to nine times worse than the
+constant forecast. The correction fixes this for the two models trained with weighted BCE: the CNN and
+XGBoost reach a skill score of 0.16, and their top tenth of pixels predicts 9.5\% and 8.9\% fire against
+8.7\% and 9.7\% observed (Fig.~\ref{fig:dl_cal}). Focal loss breaks the correction, because its scores are
+less extreme (Section~\ref{sec:dl_loss}; see also~\cite{mukhoti2020}). After the correction, the U-Net's
+probabilities are too flat: 0.15\% in the lowest tenth against 0.06\% observed, and 2.5\% in the top tenth
+against 10.0\% observed, for a skill score of only 0.04. Its ranking, and so its PR AUC, is unaffected. If
+the U-Net's probabilities are to be read as fire risk, they need a recalibration fitted on eval, such as
+Platt scaling.
+
+\subsection{Learning curve}
+
+We trained the focal U-Net (seed 0) on 5, 10, 25 and 50\% of the training patches. Each run had the same
+budget of gradient steps and the same patience in steps as the full run (at most $30/f$ epochs, patience
+$5/f$, for a share $f$). Unlike XGBoost, whose eval PR AUC stays between 0.204 and 0.207 from 5 to 100\% of
+the data (Section~\ref{sec:theory_bv}), the U-Net uses more data (Fig.~\ref{fig:dl_lc}): its eval PR AUC
+rises from 0.194 at 5\% to 0.224 at 50\% and is flat afterwards (0.223 at 100\%, within the rerun noise).
+With 10\% of the training patches it already matches XGBoost trained on all of them (0.211 against 0.207).
+The U-Net learns spatial features that the per-pixel model could not, but beyond half of the training set
+more data of the same kind adds little.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.75\columnwidth]{dl/figures/dl_learning_curve.png}
+\caption{Eval PR AUC against the share of training patches: focal U-Net (one run per share) and the Phase~1
+XGBoost.}
+\label{fig:dl_lc}
+\end{figure}
+
+\subsection{Location-overlap split}
+
+503 of the 1\,689 test patches (30\%) cover exactly the same location as a training patch
+(Section~\ref{sec:method}). Scored separately (Table~\ref{tab:dl_overlap}), these seen locations are easier
+for every model, persistence included. On the 1\,186 new locations alone, the U-Net still beats XGBoost by
+0.013 (0.004 to 0.026, paired over fire events), while the CNN and XGBoost remain level ($+0.001$, from
+$-0.014$ to 0.013). The U-Net's lead is therefore not a product of locations it has seen before.
+
+\begin{table}[t]
+\centering
+\caption{Test PR AUC on all, new and seen locations (seed 0).}
+\label{tab:dl_overlap}
+\small
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{lccc}
+\toprule
+\rowcolor{tblhead}
+\textbf{Model} & \textbf{All (1\,689)} & \textbf{New (1\,186)} & \textbf{Seen (503)} \\
+\midrule
+\rowcolor{tblours}
+U-Net (focal) & 0.269 & 0.255 & 0.335 \\
+CNN (BCE) & 0.259 & 0.243 & 0.330 \\
+XGBoost & 0.258 & 0.242 & 0.324 \\
+Persistence & 0.107 & 0.097 & 0.151 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{projectbox}
+What the checks support: the U-Net with focal loss is the best model. Its lead over XGBoost, 0.01 to 0.03 in
+PR AUC, holds for each of three seeds when both are scored on the same fires, and for seed 0 also on
+unseen locations. The CNN is level with XGBoost. Network training on a GPU is not reproducible run by run, so
+results are means over seeds. After the closed-form correction, the probabilities of the weighted-BCE models
+are close to real risk; those of the focal U-Net need a recalibration before they are used as risk.
+\end{projectbox}

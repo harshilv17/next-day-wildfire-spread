@@ -17,7 +17,7 @@ import torch
 from sklearn.metrics import average_precision_score
 
 from src import evaluate as ev
-from src.dl_data import make_loaders
+from src.dl_data import FireDataset, make_loaders
 from src.dl_losses import LOSSES
 from src.dl_models import build_model
 
@@ -54,6 +54,7 @@ def main():
     p.add_argument("--patience", type=int, default=5)
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--train-frac", type=float, default=1.0, help="share of training patches used (learning curve)")
     p.add_argument("--name", default=None, help="results row / checkpoint name (default: model)")
     a = p.parse_args()
     name = a.name or a.model
@@ -61,6 +62,11 @@ def main():
     random.seed(a.seed), np.random.seed(a.seed), torch.manual_seed(a.seed)
     dev = device()
     train_dl, eval_dl, test_dl = make_loaders(a.batch_size, seed=a.seed)
+    if a.train_frac < 1:  # a random share of the training patches, normalised with the full-split statistics
+        ds = train_dl.dataset
+        keep = torch.from_numpy(np.random.default_rng(a.seed).permutation(len(ds))[: max(1, round(a.train_frac * len(ds)))])
+        train_dl = torch.utils.data.DataLoader(FireDataset(ds.X[keep].numpy(), ds.y[keep].numpy()), a.batch_size,
+                                               shuffle=True, generator=torch.Generator().manual_seed(a.seed))
 
     y = train_dl.dataset.y
     pos_weight = float((y == 0).sum() / (y == 1).sum())

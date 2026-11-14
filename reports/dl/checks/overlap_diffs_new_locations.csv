@@ -1,0 +1,6 @@
+a,b,diff,lo95,hi95,share_a_better
+unet_focal,xgboost,0.0128,0.0043,0.0256,0.9960
+unet_focal,persistence,0.1580,0.1420,0.1766,1.0000
+cnn_bce,xgboost,0.0005,-0.0136,0.0132,0.5010
+cnn_bce,persistence,0.1457,0.1142,0.1721,1.0000
+unet_focal,cnn_bce,0.0123,-0.0023,0.0315,0.9500

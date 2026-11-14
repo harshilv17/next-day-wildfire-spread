@@ -1,0 +1,15 @@
+unet_bce_rerun: unet {'width': 32, 'depth': 3}, loss bce on cuda, pos_weight=90.0
+epoch  1  train loss 0.7228  eval PR AUC 0.1735
+epoch  2  train loss 0.5924  eval PR AUC 0.2017
+epoch  3  train loss 0.5479  eval PR AUC 0.1998
+epoch  4  train loss 0.5232  eval PR AUC 0.2177
+epoch  5  train loss 0.5121  eval PR AUC 0.2219
+epoch  6  train loss 0.4990  eval PR AUC 0.2216
+epoch  7  train loss 0.4928  eval PR AUC 0.2274
+epoch  8  train loss 0.4796  eval PR AUC 0.2196
+epoch  9  train loss 0.4720  eval PR AUC 0.2199
+epoch 10  train loss 0.4727  eval PR AUC 0.2147
+epoch 11  train loss 0.4594  eval PR AUC 0.2197
+epoch 12  train loss 0.4493  eval PR AUC 0.2095
+early stop, best eval PR AUC 0.2274
+model=unet_bce_rerun, pr_auc=0.2706, roc_auc=0.9263, precision=0.2780, recall=0.4965, f1=0.3564, threshold=0.949180006980896, best_f1=0.3617, best_f1_threshold=0.9616533517837524, recall_at_1fpr=0.3901, recall_at_5fpr=0.7028, n_pixels=6727699, fire_rate=0.0125

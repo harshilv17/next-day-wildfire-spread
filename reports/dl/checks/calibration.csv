@@ -1,0 +1,4 @@
+model,prior_factor,brier_raw,brier_corrected,brier_climatology,bss_corrected,ece_corrected,mean_corrected_p,observed_rate
+unet_focal,90.015955,0.106709,0.011852,0.012380,0.042664,0.009009,0.006113,0.012535
+cnn_bce,90.015955,0.080700,0.010408,0.012380,0.159293,0.002860,0.011254,0.012535
+xgboost,90.000000,0.085599,0.010407,0.012380,0.159362,0.001892,0.010654,0.012535
