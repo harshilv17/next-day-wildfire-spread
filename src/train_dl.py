@@ -49,6 +49,10 @@ def main():
     p.add_argument("--loss", default="bce", choices=list(LOSSES), help="training loss (src/dl_losses.py)")
     p.add_argument("--depth", type=int, default=3, help="unet levels")
     p.add_argument("--width", type=int, default=32, help="base channels")
+    p.add_argument("--drop-group", "--drop-channel-group", dest="drop_group", default=None,
+                   choices=["weather", "vegetation", "terrain", "fire", "human"],
+                   help="drop one channel group for ablation")
+    p.add_argument("--crop", type=int, default=None, help="center-crop spatial dimension (e.g. 32)")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--patience", type=int, default=5)
@@ -61,7 +65,7 @@ def main():
 
     random.seed(a.seed), np.random.seed(a.seed), torch.manual_seed(a.seed)
     dev = device()
-    train_dl, eval_dl, test_dl = make_loaders(a.batch_size, seed=a.seed)
+    train_dl, eval_dl, test_dl = make_loaders(a.batch_size, seed=a.seed, drop_group=a.drop_group, crop=a.crop)
     if a.train_frac < 1:  # a random share of the training patches, normalised with the full-split statistics
         ds = train_dl.dataset
         keep = torch.from_numpy(np.random.default_rng(a.seed).permutation(len(ds))[: max(1, round(a.train_frac * len(ds)))])
@@ -70,7 +74,8 @@ def main():
 
     y = train_dl.dataset.y
     pos_weight = float((y == 0).sum() / (y == 1).sum())
-    kw = {"width": a.width, **({"depth": a.depth} if a.model == "unet" else {})}
+    in_ch = train_dl.dataset.X.shape[1]
+    kw = {"in_ch": in_ch, "width": a.width, **({"depth": a.depth} if a.model == "unet" else {})}
     model = build_model(a.model, **kw).to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=a.lr)
     print(f"{name}: {a.model} {kw}, loss {a.loss} on {dev}, pos_weight={pos_weight:.1f}")
