@@ -2,7 +2,8 @@
 
 Use: python -m src.train_dl --model unet --name unet_base
      python -m src.train_dl --model unet --depth 4 --width 16 --seed 1 --name unet_d4_w16
-Loss: BCE with pos_weight = train no-fire:fire ratio, pixels labelled -1 masked out.
+Loss: --loss bce (default; BCE with pos_weight = train no-fire:fire ratio), focal or bce_dice, all in
+src/dl_losses.py; pixels labelled -1 are masked out of every loss.
 Early stopping on eval PR AUC. Threshold for precision/recall/F1 is chosen on eval, never on test.
 Outputs: models/{name}.pt (best checkpoint), reports/dl/results_dl.csv, reports/dl/preds/{name}.npz
 (Phase 1's reports/results.csv is never touched).
@@ -13,11 +14,11 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from sklearn.metrics import average_precision_score
 
 from src import evaluate as ev
 from src.dl_data import make_loaders
+from src.dl_losses import LOSSES
 from src.dl_models import build_model
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,14 +28,6 @@ MODELS_DIR = ROOT / "models"
 
 def device():
     return torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
-
-
-def masked_bce(logits, y, pos_weight):
-    """BCE over labelled pixels only (y != -1); fire pixels weighted by pos_weight."""
-    keep = y != -1
-    return F.binary_cross_entropy_with_logits(
-        logits.squeeze(1)[keep], y[keep], pos_weight=torch.tensor(pos_weight, device=y.device)
-    )
 
 
 @torch.no_grad()
@@ -53,6 +46,7 @@ def eval_pr_auc(model, loader, dev):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", default="unet", choices=["cnn", "unet"])
+    p.add_argument("--loss", default="bce", choices=list(LOSSES), help="training loss (src/dl_losses.py)")
     p.add_argument("--depth", type=int, default=3, help="unet levels")
     p.add_argument("--width", type=int, default=32, help="base channels")
     p.add_argument("--seed", type=int, default=0)
@@ -73,7 +67,7 @@ def main():
     kw = {"width": a.width, **({"depth": a.depth} if a.model == "unet" else {})}
     model = build_model(a.model, **kw).to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=a.lr)
-    print(f"{name}: {a.model} {kw} on {dev}, pos_weight={pos_weight:.1f}")
+    print(f"{name}: {a.model} {kw}, loss {a.loss} on {dev}, pos_weight={pos_weight:.1f}")
 
     MODELS_DIR.mkdir(exist_ok=True)
     ckpt, best, stale = MODELS_DIR / f"{name}.pt", -1.0, 0
@@ -83,7 +77,7 @@ def main():
         for x, yb in train_dl:
             x, yb = x.to(dev), yb.to(dev)
             opt.zero_grad()
-            loss = masked_bce(model(x), yb, pos_weight)
+            loss = LOSSES[a.loss](model(x), yb, pos_weight)
             loss.backward()
             opt.step()
             total += loss.item() * len(x)
