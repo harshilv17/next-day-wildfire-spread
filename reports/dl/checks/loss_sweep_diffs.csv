@@ -1,0 +1,4 @@
+a,b,diff,lo95,hi95,share_a_better
+focal,bce,0.0115,0.0023,0.0183,0.9920
+bce_dice,bce,0.0115,0.0040,0.0183,1.0000
+focal,bce_dice,0.0000,-0.0084,0.0071,0.5240

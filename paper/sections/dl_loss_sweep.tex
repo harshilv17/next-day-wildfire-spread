@@ -1,0 +1,92 @@
+% Loss function sweep for the Phase 2 U-Net
+% Numbers come from reports/dl/checks/loss_sweep.csv, loss_sweep_diffs.csv and runs.csv
+% (python reports/dl/checks/dl_checks.py sweep).
+
+\section{Loss Function Sweep}
+\label{sec:dl_loss}
+
+Fire covers about 1\% of labelled pixels, so the training loss decides how much the rare fire pixels count.
+We trained the U-Net with three losses and kept everything else fixed: the data and its normalisation, the
+architecture (3 levels, base width 32), Adam with learning rate $10^{-3}$, batch size 32, at most 30 epochs
+with early stopping after 5 epochs without a gain in eval PR AUC, and the same three seeds (0, 1, 2). Every
+loss ignores pixels labelled $-1$, and all runs used one NVIDIA T4 GPU.
+
+\textbf{Weighted BCE.} Over the labelled pixels $\mathcal{L}$ of a batch, with predicted fire probability
+$p_i$ and label $y_i$,
+\begin{equation}
+\ell_{\text{BCE}} = -\frac{1}{|\mathcal{L}|}\sum_{i\in\mathcal{L}} \big[\, w\, y_i \log p_i + (1-y_i)\log(1-p_i) \,\big],
+\label{eq:dl_bce}
+\end{equation}
+where $w = 90.0$ is the no-fire to fire ratio of the training pixels. This is the default loss of the
+Phase~2 pipeline.
+
+\textbf{Focal loss.} With $p_{t,i}$ the probability given to the true class ($p_i$ for fire, $1-p_i$
+otherwise) and $w_i$ equal to $w$ on fire pixels and 1 elsewhere,
+\begin{equation}
+\ell_{\text{FL}} = \frac{1}{|\mathcal{L}|}\sum_{i\in\mathcal{L}} w_i\,(1-p_{t,i})^{\gamma}\,\big(-\log p_{t,i}\big),
+\qquad \gamma = 2 .
+\label{eq:dl_focal}
+\end{equation}
+This is the class-balanced focal loss of Lin et al.~\cite{lin2017} with the balance set by the class ratio,
+so it differs from (\ref{eq:dl_bce}) only by the factor $(1-p_{t,i})^{\gamma}$, which shrinks the loss of
+pixels the model already gets right.
+
+\textbf{BCE + Dice.} The soft Dice loss~\cite{milletari2016} measures the overlap of the predicted and the
+true fire area. We add it to (\ref{eq:dl_bce}), the combination nnU-Net uses by default~\cite{isensee2021}:
+\begin{equation}
+\ell_{\text{BCE+Dice}} = \ell_{\text{BCE}} + 1 - \frac{2\sum_i p_i y_i + 1}{\sum_i p_i + \sum_i y_i + 1} .
+\label{eq:dl_dice}
+\end{equation}
+The sums run over all labelled pixels of the batch rather than per patch, because many patches have no fire
+on day $t+1$, where a per-patch Dice would be $0/0$.
+
+\textbf{Choosing the loss.} We fixed the rule before the runs: the loss with the highest eval PR AUC,
+averaged over the three seeds, is used for the final U-Net, and BCE stays unless another loss beats it by
+more than one seed standard deviation. Test results are reported but never used to choose.
+
+\begin{table}[t]
+\centering
+\caption{Loss sweep for the U-Net: mean $\pm$ standard deviation over seeds 0, 1 and 2. Eval PR AUC (best
+epoch) decides; the test columns are reported only.}
+\label{tab:dl_loss}
+\footnotesize
+\setlength{\tabcolsep}{2.8pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{lccccc}
+\toprule
+\rowcolor{tblhead}
+\textbf{Loss} & \textbf{Eval PR AUC} & \textbf{Test PR AUC} & \textbf{F1} & \textbf{R@1\%} & \textbf{R@5\%} \\
+\midrule
+BCE & 0.222 $\pm$ 0.003 & 0.269 $\pm$ 0.010 & 0.348 & 0.389 & 0.704 \\
+\rowcolor{tblours}
+Focal & \textbf{0.226} $\pm$ 0.003 & \textbf{0.275} $\pm$ 0.008 & 0.349 & \textbf{0.398} & \textbf{0.711} \\
+BCE + Dice & 0.221 $\pm$ 0.004 & 0.269 $\pm$ 0.006 & 0.343 & 0.390 & 0.700 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{dl/figures/loss_sweep.png}
+\caption{(a) Eval PR AUC per epoch for seed 0; circles mark the kept epoch. (b) Test PR AUC of the seed-0
+runs with 95\% confidence intervals over fire events; diamonds are the three seeds.}
+\label{fig:dl_loss}
+\end{figure}
+
+\textbf{Result.} Focal loss has the highest eval PR AUC, 0.226 against 0.222 for BCE and 0.221 for
+BCE + Dice (Table~\ref{tab:dl_loss}), and it is ahead of BCE on both eval and test for each of the three
+seeds. On test it reaches 0.275 $\pm$ 0.008 against 0.269 $\pm$ 0.010, with slightly higher recall at 1\%
+and 5\% FPR. By our rule, the final U-Net uses focal loss. BCE + Dice brings no gain in PR AUC and a slightly
+lower, more variable F1.
+
+The gain is small, and we do not claim more than that. Paired over the same fire events, the seed-0 focal
+model beats the seed-0 BCE model by 0.012 (95\% interval 0.002 to 0.018), but that interval covers only the
+sampling of the test fires. Training noise is as large: a rerun of the seed-0 BCE model with the same seed
+on the same GPU moves its test PR AUC by 0.013 (Section~\ref{sec:dl_validation}). With three seeds per loss,
+focal loss is consistently but not significantly better. The three losses train at the same speed; the
+seed-0 runs stop after 10 to 12 epochs, with the best epoch between 5 and 7 (Fig.~\ref{fig:dl_loss}a).
+
+Focal loss also changes the scores themselves. Its F1 threshold chosen on eval is 0.69 to 0.75, against
+0.92 to 0.93 for BCE: the factor $(1-p_t)^{\gamma}$ no longer rewards pushing confident pixels further, so the
+scores stay less extreme. As a result, its probabilities no longer match the closed-form correction for class
+weighting (Section~\ref{sec:theory_imb}); Section~\ref{sec:dl_validation} measures this.
