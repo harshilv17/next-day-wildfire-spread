@@ -52,7 +52,8 @@ def main():
     p.add_argument("--drop-group", "--drop-channel-group", dest="drop_group", default=None,
                    choices=["weather", "vegetation", "terrain", "fire", "human"],
                    help="drop one channel group for ablation")
-    p.add_argument("--crop", type=int, default=None, help="center-crop spatial dimension (e.g. 32)")
+    p.add_argument("--crop", type=int, default=None, help="center-crop spatial dimension for training (e.g. 32)")
+    p.add_argument("--crop-eval", action="store_true", help="also crop eval and test sets to crop size")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--patience", type=int, default=5)
@@ -65,7 +66,9 @@ def main():
 
     random.seed(a.seed), np.random.seed(a.seed), torch.manual_seed(a.seed)
     dev = device()
-    train_dl, eval_dl, test_dl = make_loaders(a.batch_size, seed=a.seed, drop_group=a.drop_group, crop=a.crop)
+    train_dl, eval_dl, test_dl = make_loaders(
+        a.batch_size, seed=a.seed, drop_group=a.drop_group, crop=a.crop, crop_eval=a.crop_eval
+    )
     if a.train_frac < 1:  # a random share of the training patches, normalised with the full-split statistics
         ds = train_dl.dataset
         keep = torch.from_numpy(np.random.default_rng(a.seed).permutation(len(ds))[: max(1, round(a.train_frac * len(ds)))])

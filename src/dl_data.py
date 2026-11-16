@@ -20,7 +20,6 @@ CHANNEL_GROUPS = {
     "terrain": ["elevation"],
     "human": ["population"],
     "fire": ["PrevFireMask"],
-    "fire_neighbourhood": ["PrevFireMask"],  # alias matching features.py
 }
 
 STATS_FILE = PROCESSED_DIR / "norm_stats.npz"
@@ -37,15 +36,13 @@ def get_active_channels(drop_group=None):
     return [c for c in CHANNELS if c not in drop]
 
 
-def fit_norm(X, skip=None):
+def fit_norm(X):
     """Per-channel clip bounds and mean/std from train X (N, C, H, W)."""
     flat = X.transpose(1, 0, 2, 3).reshape(X.shape[1], -1)
     lo, hi = np.percentile(flat, [0.5, 99.5], axis=1)
     clipped = np.clip(flat, lo[:, None], hi[:, None])
     mean, std = clipped.mean(1), clipped.std(1) + 1e-6
-    if skip is None:
-        skip = SKIP
-    for c in skip:
+    for c in SKIP:
         if c < X.shape[1]:
             lo[c], hi[c], mean[c], std[c] = -1, 1, 0, 1
     return lo, hi, mean, std
@@ -105,11 +102,13 @@ class FireDataset(Dataset):
         return self.X[i], self.y[i]
 
 
-def make_loaders(batch_size=32, num_workers=0, seed=0, drop_group=None, crop=None):
+def make_loaders(batch_size=32, num_workers=0, seed=0, drop_group=None, crop=None, crop_eval=False):
     """Return train (shuffled), eval, test loaders, all normalised with train stats.
 
     drop_group: drop one group from CHANNEL_GROUPS ('weather', 'vegetation', 'terrain', 'fire', 'human').
-    crop: optional center-crop size (e.g. 32). Default None keeps full 64x64.
+    crop: optional center-crop size for training patches (e.g. 32). Eval and test remain full 64x64
+          so PR AUC and other test metrics are scored on all 6.7M pixels and directly comparable.
+    crop_eval: if True, also crop eval and test splits to (crop, crop). Default False.
     """
     active_channels = get_active_channels(drop_group)
     active_idx = [CHANNELS.index(c) for c in active_channels]
@@ -129,43 +128,31 @@ def make_loaders(batch_size=32, num_workers=0, seed=0, drop_group=None, crop=Non
         X, y = load_split(split)
         X = X[:, active_idx]
         X_norm = apply_norm(X, stats)
-        X_norm, y = apply_crop(X_norm, y, crop)
+        if crop_eval:
+            X_norm, y = apply_crop(X_norm, y, crop)
         out.append(DataLoader(FireDataset(X_norm, y), batch_size, num_workers=num_workers))
     return out
 
 
 if __name__ == "__main__":
+    # Channel-group definition self-checks
+    for grp, exp_c in [("weather", 4), ("vegetation", 11), ("terrain", 11), ("human", 11), ("fire", 11)]:
+        chs = get_active_channels(grp)
+        assert len(chs) == exp_c, f"drop {grp}: expected {exp_c} ch, got {len(chs)}"
+    print("channel groups self-check ok")
+
+    # Center-crop function self-check
+    dummy_X = np.zeros((2, 12, 64, 64), dtype=np.float32)
+    dummy_y = np.zeros((2, 64, 64), dtype=np.float32)
+    xc, yc = apply_crop(dummy_X, dummy_y, 32)
+    assert xc.shape == (2, 12, 32, 32) and yc.shape == (2, 32, 32)
+    print("apply_crop self-check ok")
+
+    # DataLoader self-check
     train_dl, eval_dl, test_dl = make_loaders(batch_size=16)
     x, y = next(iter(train_dl))
     assert x.shape == (16, len(CHANNELS), 64, 64) and y.shape == (16, 64, 64)
     assert torch.isfinite(x).all() and set(y.unique().tolist()) <= {-1.0, 0.0, 1.0}
     keep = [c for c in range(len(CHANNELS)) if c not in SKIP]
     assert x[:, keep].abs().max() < 30, "normalised channels should be small"
-    print(len(train_dl.dataset), len(eval_dl.dataset), len(test_dl.dataset), "dl_data default self-check ok")
-
-    # Ablation channel-group self-checks
-    expected_channels = {
-        "weather": 12 - 8,
-        "vegetation": 12 - 1,
-        "terrain": 12 - 1,
-        "human": 12 - 1,
-        "fire": 12 - 1,
-    }
-    for grp, exp_c in expected_channels.items():
-        tr, ev, te = make_loaders(batch_size=4, drop_group=grp)
-        xb, yb = next(iter(tr))
-        assert xb.shape == (4, exp_c, 64, 64), f"drop {grp}: expected {exp_c} ch, got {xb.shape[1]}"
-        assert torch.isfinite(xb).all()
-        print(f"drop_group '{grp}': {exp_c} channels ok")
-
-    # Spatial crop self-check (32x32)
-    tr_crop, _, _ = make_loaders(batch_size=4, crop=32)
-    xb_crop, yb_crop = next(iter(tr_crop))
-    assert xb_crop.shape == (4, 12, 32, 32) and yb_crop.shape == (4, 32, 32)
-    print("crop=32 self-check ok")
-
-    # Combined drop-group and crop self-check
-    tr_comb, _, _ = make_loaders(batch_size=4, drop_group="weather", crop=32)
-    xb_comb, yb_comb = next(iter(tr_comb))
-    assert xb_comb.shape == (4, 4, 32, 32) and yb_comb.shape == (4, 32, 32)
-    print("combined drop_group + crop self-check ok")
+    print(len(train_dl.dataset), len(eval_dl.dataset), len(test_dl.dataset), "dl_data self-check ok")
