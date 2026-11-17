@@ -110,7 +110,8 @@ python -m src.dl_augment    # flips / rotations move the label and turn the wind
 ```
 src/
   dl_data.py         normalised PyTorch loaders (clip to train 0.5-99.5 percentile, z-score, fit on train only)
-  dl_models.py       CNN (4 conv layers) and U-Net (depth, width; default 3 levels, width 32)
+  dl_models.py       CNN (4 conv layers) and U-Net (depth, width; code default 3 levels, width 32;
+                     the final model uses 4 levels, see below)
   dl_losses.py       weighted BCE, focal, BCE + Dice; pixels labelled -1 are masked out
   dl_augment.py      training-batch flips / 90-degree rotations that also turn the wind direction `th`
   train_dl.py        training loop, early stopping on eval PR AUC, test scoring
@@ -121,10 +122,12 @@ src/
 ### How to run
 
 One run takes about 15-20 min on an Apple Silicon GPU (longer on an 8 GB machine, where loading the data swaps).
-Every option is a flag whose default keeps the earlier behaviour:
+Every option is a flag whose default keeps the earlier behaviour. The final Phase 2 model is the U-Net with
+4 levels, width 32, focal loss and no augmentation; the code default stays at 3 levels, so pass `--depth 4`:
 
 ```bash
-python -m src.train_dl --model unet --loss focal --name unet_focal               # U-Net, focal loss
+python -m src.train_dl --model unet --depth 4 --width 32 --loss focal --seed 0 --name unet_final_s0   # final model (seeds 0-2)
+python -m src.train_dl --model unet --loss focal --name unet_focal               # 3-level U-Net, focal loss
 python -m src.train_dl --model cnn --name cnn_bce                                # CNN baseline (weighted BCE)
 python -m src.train_dl --model unet --loss focal --seed 1 --name unet_focal_s1   # another seed
 python -m src.train_dl --model unet --loss focal --aug flip_rot --name unet_focal_aug_flip_rot_s0
@@ -159,15 +162,27 @@ Test split, mean ± standard deviation over seeds 0, 1 and 2. Bold = best per co
 
 | Model | PR AUC | ROC AUC | F1 | Recall @ 1% FPR | Recall @ 5% FPR |
 |---|---:|---:|---:|---:|---:|
-| **U-Net (focal)** | **0.275 ± 0.008** | **0.923 ± 0.003** | **0.349 ± 0.006** | **0.398 ± 0.004** | **0.711 ± 0.005** |
+| **U-Net, 4 levels, focal (final)** | **0.344 ± 0.007** | **0.935 ± 0.009** | **0.399 ± 0.003** | **0.459 ± 0.003** | **0.783 ± 0.007** |
+| U-Net, 3 levels, focal (`--aug none`) | 0.280 ± 0.002 | 0.934 ± 0.002 | 0.346 ± 0.011 | 0.399 ± 0.002 | 0.724 ± 0.008 |
 | CNN (weighted BCE) | 0.249 ± 0.010 | 0.878 ± 0.011 | 0.335 ± 0.008 | 0.378 ± 0.009 | 0.653 ± 0.006 |
 | XGBoost (Phase 1) | 0.255 ± 0.002 | 0.905 ± 0.001 | 0.330 ± 0.000 | 0.388 ± 0.001 | 0.673 ± 0.001 |
+| Huot et al. CNN (reported, for reference) | 0.284 | | | | |
 
-The U-Net beats XGBoost for every seed when both are scored on the same fire events, and (seed 0) also on
-test locations not seen in training. Details: `reports/dl/checks/loss_sweep.md` and the technical validation
-section of the paper.
+The more of the patch a model sees, the better it scores: the CNN sees 9×9 km and ties XGBoost, the 3-level
+U-Net sees 44×44 km (0.280), and the 4-level U-Net's receptive field of 92-100 px (it depends on the pixel's
+position) covers the whole 64×64 patch for every pixel within 14 px of the centre, where the fire is (0.344,
+above Huot et al.'s 0.284, which comes from a different training pipeline). ROC AUC barely moves, so
+the gain is in the rare-fire, low-false-alarm region. The 3- and 4-level seeds ran on different Apple GPUs;
+hardware alone moves test PR AUC by up to 0.02. The paired test of the final model against XGBoost on the same
+fire events is being rerun. Details: `reports/dl/architecture_ablation_summary.md`,
+`reports/dl/checks/loss_sweep.md` and the technical validation section of the paper.
 
-**Augmentation** (`--aug`, focal U-Net, all runs on one Apple M3; mean ± std over seeds 0-2):
+Feeding the U-Net the XGBoost probability as a 13th channel (hybrid, panel c above) brings no measurable gain
+(+0.0015 at 3 levels, −0.0025 at 4, one seed each), and an eval-tuned average with XGBoost gives XGBoost zero
+weight at 4 levels (`reports/dl/hybrid_ensemble_summary.md`).
+
+**Augmentation** (`--aug`, 3-level focal U-Net, all runs on one Apple M3; mean ± std over seeds 0-2; the final
+4-level model keeps `--aug none`):
 
 | `--aug` | Eval PR AUC | Test PR AUC | Recall @ 1% FPR | Recall @ 5% FPR |
 |---|---:|---:|---:|---:|
