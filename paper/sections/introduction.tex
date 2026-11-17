@@ -1,6 +1,7 @@
 % Introduction (Piyush)
 % Numbers come from reports/results.csv, reports/ablation.csv and reports/checks/ci_events.csv (Phase 1),
-% reports/dl/checks/seeds.csv, ci_diffs_seeds_vs_xgboost.csv and aug_ablation.csv (Phase 2).
+% reports/dl/checks/seeds.csv, ci_diffs_seeds_vs_xgboost.csv and aug_ablation.csv (Phase 2),
+% reports/dl/results_dl.csv (unet_final_s0..s2) and reports/dl/architecture_ablation_summary.md (final model).
 
 \section{Introduction}
 \label{sec:intro}
@@ -30,11 +31,16 @@ reaches a test PR AUC of 0.257 against 0.106 for persistence.
 
 The errors of this model point to what a per-pixel design cannot see: the shape of the fire front and
 spread beyond a fixed radius. In Phase~2 we therefore train models on the whole patch
-(Fig.~\ref{fig:dl_arch}): a small CNN that sees $9\times9$\,km around each pixel and a U-Net~\cite{ronneberger2015}
-that sees $44\times44$\,km. We choose the training loss and test data augmentation in controlled
-comparisons over three seeds, and check the result for seed and rerun noise, calibration, data size and
-location overlap. The U-Net with focal loss reaches a test PR AUC of 0.275 $\pm$ 0.008, ahead of XGBoost
-for every seed when both are scored on the same fires.
+(Fig.~\ref{fig:dl_arch}), and the scores climb a context ladder: the more of the patch a model sees, the
+better it does. A small CNN that sees $9\times9$\,km around each pixel, about the reach of our
+neighbourhood features, ties XGBoost. A three-level U-Net~\cite{ronneberger2015} that sees
+$44\times44$\,km reaches a test PR AUC of 0.280 $\pm$ 0.002. A four-level U-Net has a receptive field of
+92--100\,px: at three levels no pixel sees the whole $64\times64$\,km patch, at four levels every
+pixel within 14\,px of the centre, where the fire is, does (Section~\ref{sec:dl_theory_rf}). It reaches 0.344 $\pm$ 0.007 and beats the CNN of
+Huot et al.\ (0.284) \pending{paired test against XGBoost on the same fires: Priyanshu}. ROC AUC barely
+moves (0.934 to 0.935), so the gain lies in the rare-fire, low-false-alarm region. We choose the training
+loss and test data augmentation in controlled comparisons over three seeds, and check the three-level
+U-Net for seed and rerun noise, calibration, data size and location overlap.
 
 \begin{figure*}[t]
 \centering
@@ -48,9 +54,9 @@ are tuned on eval PR AUC and scored once on the test split.}
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.78\textwidth]{dl/figures/dl_architectures.png}
-\caption{Phase~2 architectures. (a) CNN baseline without downsampling. (b) U-Net with three levels, base
-width 32 and skip connections. (c) Hybrid U-Net with the Phase~1 XGBoost probability as a 13th input
-channel, planned as the next step.}
+\caption{Phase~2 architectures. (a) CNN baseline without downsampling. (b) Final U-Net with four levels,
+base width 32 and skip connections; its 92--100\,px receptive field covers the whole patch around the fire. (c) Hybrid
+U-Net with the Phase~1 XGBoost probability as a 13th input channel; it brings no measurable gain.}
 \label{fig:dl_arch}
 \end{figure*}
 
@@ -65,8 +71,10 @@ Our contributions are:
   false alarms around dying fires;
 \item data findings that matter for any model on this dataset: the patches are stored south-up,
   the raw export contains impossible values, and the test split contains duplicate patches;
-\item a U-Net with focal loss that beats the tuned XGBoost (0.275 $\pm$ 0.008 against 0.255 $\pm$ 0.002
-  over three seeds), with the gain coming from spatial context rather than from the loss;
+\item a four-level U-Net with focal loss whose 92--100\,px field covers the whole patch around the fire and that beats both the tuned XGBoost
+  (0.344 $\pm$ 0.007 against 0.255 $\pm$ 0.002 over three seeds) and the CNN of Huot et al.\ (0.284), with
+  the gain coming from spatial context rather than from the loss: PR AUC rises at each step of the context
+  ladder, from $9\times9$ to $44\times44$\,km to the whole patch seen from its centre;
 \item controlled comparisons showing that the loss and data augmentation matter far less than seed and
   rerun noise: flips and rotations, with the wind direction turned to match the south-up grid, bring no
   measurable gain.
@@ -75,6 +83,8 @@ Our contributions are:
 Section~\ref{sec:related} reviews related work and Section~\ref{sec:theory} gives the theory behind
 our choices. Section~\ref{sec:dataset} describes the dataset and our exploratory analysis,
 Sections~\ref{sec:method} and~\ref{sec:features} the method and the engineered features, and
-Section~\ref{sec:results} the results of Phase~1. For Phase~2, Section~\ref{sec:dl_loss} chooses the loss,
+Section~\ref{sec:results} the results of Phase~1. For Phase~2, Sections~\ref{sec:dl_related},
+\ref{sec:dl_method} and~\ref{sec:dl_theory} give the related work, the models and the theory, including
+the receptive fields; Section~\ref{sec:dl_loss} chooses the loss,
 Section~\ref{sec:dl_aug} tests data augmentation and Section~\ref{sec:dl_validation} validates the final
 models. Section~\ref{sec:conclusion} concludes and Section~\ref{sec:future} outlines future work.
