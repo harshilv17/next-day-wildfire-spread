@@ -304,7 +304,8 @@ def load_model(name, arch="unet", **kw):
     from src.dl_models import build_model
     kw = kw or ({"depth": 3, "width": 32} if arch == "unet" else {"width": 32})
     model = build_model(arch, **kw)
-    model.load_state_dict(torch.load(MODELS_DIR / f"{name}.pt", map_location="cpu"))
+    # weights_only: load tensors only, never run code stored in a checkpoint file
+    model.load_state_dict(torch.load(MODELS_DIR / f"{name}.pt", map_location="cpu", weights_only=True))
     return model.to(device()).eval()
 
 
