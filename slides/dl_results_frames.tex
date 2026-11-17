@@ -11,13 +11,12 @@
 \begin{itemize}
 \item Final U-Net (depth 4, focal): \textbf{0.344 $\pm$ 0.007} PR AUC vs 0.255 for XGBoost; paired over fire events +0.080 (0.058 to 0.113)
 \item Fire \textbf{beyond 5\,km}: recall \textbf{0.20}, XGBoost \textbf{0.00}
-\item 3--5\,km: 0.33 vs 0.04; ranked within each band, ahead everywhere
+\item 3--5\,km: 0.33 vs 0.04; ahead in every band
 \item Not memorised places, not hidden fire, not a patch shortcut: stronger on unseen locations (0.18 vs 0.07)
 \item Depth 4 is the step: depth 3 and the CNN only tie XGBoost
 \end{itemize}
 \column{0.54\textwidth}
 \centering
-\vspace{0.3em}
 \includegraphics[width=\textwidth]{dl_eval_recall_by_distance.png}
 \end{columns}
 \src{Test split, seed 0 at eval-chosen thresholds; PR AUC over seeds 0--2. Notebook 03, sections 4 and 4b.}

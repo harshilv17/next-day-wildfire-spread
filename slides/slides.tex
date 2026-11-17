@@ -343,16 +343,16 @@ LightGBM (tuned, 35 feat.) & 0.248 & 0.903 & 0.520 & 0.331 \\
 \column{0.36\textwidth}
 \footnotesize
 \begin{itemize}
-\item Same splits and labels as Phase 1; input normalised with train statistics only
+\item Phase 1 splits and labels; train-only normalisation
 \item \textbf{CNN}: 4 conv layers, sees 9$\times$9\,km, about the Phase 1 neighbourhood features
 \item \textbf{U-Net} (final): 4 levels, width 32, skip connections; 92--100\,px receptive field (whole patch around the fire)
-\item \textbf{Hybrid}: the U-Net plus the Phase 1 XGBoost probability as a 13th channel (out-of-fold on train, so no leakage); no measurable gain
+\item \textbf{Hybrid}: U-Net plus the XGBoost probability as a 13th channel (out-of-fold on train); no measurable gain
 \item Early stopping and the threshold on eval; test scored once
 \end{itemize}
 \column{0.62\textwidth}
 \centering
 \vspace{-0.4em}
-\includegraphics[width=\textwidth]{dl_architectures.png}
+\includegraphics[width=0.93\textwidth]{dl_architectures.png}
 \end{columns}
 \end{frame}
 
@@ -412,31 +412,31 @@ flip\_rot & 0.221 $\pm$ .003 & 0.274 $\pm$ .001 & 0.713 \\
 \begin{columns}[T]
 \column{0.56\textwidth}
 \footnotesize
-\setlength{\tabcolsep}{2pt}
+\setlength{\tabcolsep}{1.5pt}
 \begin{tabular}{@{}l r r r r@{}}
 \toprule
-Model & PR AUC & ROC AUC & R@1\% & R@5\% \\
+Model & PR AUC & ROC & R@1\% & R@5\% \\
 \midrule
 \textbf{U-Net d4 (final)} & \textbf{0.344} $\pm$ .007 & \textbf{0.935} & \textbf{0.459} & \textbf{0.783} \\
 U-Net d3 & 0.280 $\pm$ .002 & 0.934 & 0.399 & 0.724 \\
 CNN (BCE) & 0.249 $\pm$ .010 & 0.878 & 0.378 & 0.653 \\
-XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
+XGBoost & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 \color{muted}Huot et al.\ CNN & \color{muted}0.284 & & & \\
 \bottomrule
 \end{tabular}
 \vspace{0.4em}
 \footnotesize
 \begin{itemize}
-\item More context, higher score: CNN 9$\times$9\,km ties XGBoost $\rightarrow$ 44$\times$44\,km 0.280 $\rightarrow$ whole patch from the centre 0.344
+\item More context, higher score: 9$\times$9\,km ties XGBoost $\rightarrow$ 44$\times$44\,km 0.280 $\rightarrow$ whole patch 0.344
 \item ROC AUC barely moves: gain at low false-alarm rates
-\item Every U-Net seed beats XGBoost on the same fires: +0.080, +0.085, +0.094; also on unseen locations (seed 0): +0.092
+\item Every seed beats XGBoost on the same fires: +0.080, +0.085, +0.094; unseen locations (seed 0): +0.092
 \end{itemize}
 \column{0.42\textwidth}
 \centering
 \vspace{0.4em}
 \includegraphics[width=\textwidth]{dl_ci_events.png}
 \end{columns}
-\src{Test, mean $\pm$ std over seeds 0--2. Huot et al.: as reported (other pipeline). Figure: 3-level U-Net, 95\% CI over fire events.}
+\src{Test, mean $\pm$ std, seeds 0--2. Huot et al.: as reported (other pipeline). Figure: 3-level U-Net, 95\% CI over fire events.}
 \end{frame}
 
 % ---------------------------------------------------------------- Priyanshu
