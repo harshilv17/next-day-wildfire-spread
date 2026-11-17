@@ -208,29 +208,26 @@ We compare:
 
 ## 3. Analysis & Key Insights
 
-### 1. Severe Performance Drop from Reduced Spatial Context
-- **Test PR AUC:** Full 64x64 training achieved **{base_row['test_pr_auc']:.4f}**, whereas 32x32 crop training achieved **{crop_row['test_pr_auc']:.4f}** (Delta = {delta_pr:+.4f}).
-- **Evaluation PR AUC:** 0.2188 vs 0.1333 (Delta = -0.0855).
-- **Test F1:** 0.3531 vs 0.2709 (Delta = -0.0822).
-- **Recall at 1% FPR:** 0.3926 vs 0.2775 (Delta = -0.1151).
-- **Conclusion:** Truncating training to center 32x32 crops results in a massive, statistically significant collapse in PR AUC ({delta_pr:+.4f}), which is almost 5x larger than the single-seed noise envelope (+-0.02).
+### 1. Result
+- **Test PR AUC:** {base_row['test_pr_auc']:.4f} (full 64x64 training) vs {crop_row['test_pr_auc']:.4f} (centre 32x32 training), **{delta_pr:+.4f}**.
+- **Eval PR AUC:** {base_row['eval_pr_auc']:.4f} vs {crop_row['eval_pr_auc']:.4f} ({crop_row['eval_pr_auc'] - base_row['eval_pr_auc']:+.4f}).
+- **Test F1:** {base_row['f1']:.4f} vs {crop_row['f1']:.4f} ({delta_f1:+.4f}); **recall at 1% FPR:** {base_row['recall_at_1fpr']:.4f} vs {crop_row['recall_at_1fpr']:.4f} ({crop_row['recall_at_1fpr'] - base_row['recall_at_1fpr']:+.4f}).
+- The drop is far larger than run-to-run noise (same-seed reruns move test PR AUC by up to 0.02), so **training on the centre crop and predicting on full patches clearly does not work**. Single seed (0), weighted BCE.
 
-### 2. Underlying Mechanisms: Why Crop Training Fails
-1. **Class Distribution Shift (pos_weight):**
-   - In full 64x64 patches, the overall fire prevalence is ~1.1% (pos_weight = 90.0).
-   - In center 32x32 crops, because patches are centered on active fires, fire prevalence is ~3.2% (pos_weight = 30.4, a 3x higher fire concentration).
-   - The model trained on 32x32 crops optimizes against a dramatically unrepresentative prior, causing severe probability miscalibration when evaluated on the sparser full 64x64 domain.
-2. **Loss of Long-Range Upwind & Regional Meteorological Context:**
-   - Wildfire spread over a 24-hour window is governed by synoptic-scale wind vectors, humidity gradients, and regional fuel connectivity often spanning 20 to 50 km.
-   - Restricting training to 32x32 km cuts off the surrounding landscape. The network never learns to associate distant upwind atmospheric conditions with fire propagation.
+### 2. What this does and does not show
+This is a **centre** crop, the same 32x32 window of every patch. It is not the **random** 32x32 crops Huot et al. (2022) train on, so it does not test their setup. Three effects change together and cannot be separated here:
+1. **Different fire share.** Patches are centred on fires, so the centre crop holds about 3x more fire (pos_weight 30.4 against 90.0 on full patches). The model learns a different prior and is then scored on the sparser full patch.
+2. **No patch edges in training.** The model never sees the outer ring of the patch (3/4 of its area), yet it has to predict there at test time.
+3. **Train/test input mismatch.** The fully convolutional U-Net runs on 64x64 inputs it was never trained on (different zero-padded borders and batch-norm statistics).
 
-### 3. Computational Efficiency Trade-off
-- **Training Time:** 32x32 training took {crop_row['training_duration_s']:.1f}s vs {base_row['training_duration_s']:.1f}s for full training ({time_ratio * 100:.1f}% of baseline time).
-- While 32x32 training reduces per-epoch time due to 4x fewer pixels (1,024 vs 4,096 pixels per patch), the resulting ~36% relative loss in Test PR AUC (0.2688 -> 0.1721) proves that spatial context truncation is an unacceptable compromise for wildfire spread modeling.
+The result supports training and predicting on the same full 64x64 patches. It does not show *how much* of the drop comes from losing spatial context. That would need random-crop training, which was not run.
 
-### 4. Scientific Caveats & Methodological Rigour
-- **Honest 64x64 Evaluation:** Unlike earlier flawed setups that evaluated crop models only on center pixels (which masked the error by artificially inflating test fire density), this evaluation tests both models on the full, identical 64x64 domain.
-- **Threshold Integrity:** Decision thresholds were selected strictly on the evaluation split (threshold = {crop_row['eval_threshold']:.4f}) and applied without modification to the test split.
+### 3. Cost
+- Training took {crop_row['training_duration_s']:.1f}s against {base_row['training_duration_s']:.1f}s ({time_ratio * 100:.1f}% of the baseline time), because each patch has 4x fewer pixels.
+
+### 4. Protocol
+- Both models are evaluated on the same full 64x64 eval and test patches (an earlier version also cropped eval/test, which made the scores incomparable).
+- The decision threshold is chosen on eval (threshold = {crop_row['eval_threshold']:.4f}) and applied unchanged to test.
 
 ---
 
