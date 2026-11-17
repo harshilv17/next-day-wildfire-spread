@@ -1,0 +1,89 @@
+% Deep learning related work (Harshil)
+% Complements Section sec:related (Priyanshu), which covers the NDWS spread models. This section covers the
+% methods behind the Phase 2 design choices. Our numbers come from reports/dl/results_dl.csv,
+% reports/dl/checks/aug_ablation.md, reports/dl/hybrid_ensemble_summary.md and
+% reports/dl/architecture_ablation_summary.md.
+
+\section{Deep Learning Related Work}
+\label{sec:dl_related}
+
+Section~\ref{sec:related} reviewed the spread models trained on NDWS. Here we review the methods behind
+the choices of our Phase~2 model: the architecture and how much of the patch it sees, the loss, the
+augmentation, the hybrid with the Phase~1 model, and training. Table~\ref{tab:dl_relwork} lists what each
+paper contributes and what we found when we tested it.
+
+\textbf{Long et al.~\cite{long2015}} turn classification networks into fully convolutional networks (FCNs)
+for semantic segmentation. Replacing the fully connected layers by convolutions lets one network take an
+input of any size and output a dense map of the same size, and skip connections combine coarse, deep
+features with fine, shallow ones. \relevance{} all our models are fully convolutional, which is what lets
+a model trained on $32\times32$ crops be scored on $64\times64$ patches (Section~\ref{sec:dl_theory}).
+
+\textbf{Ronneberger et al.~\cite{ronneberger2015}} (U-Net) make the FCN symmetric: an encoder halves the
+resolution at each level, a decoder upsamples back, and each decoder level concatenates the encoder
+features of the same resolution. \relevance{} U-Net is our main model. Its depth, the number of
+levels, sets how far each output pixel can see.
+
+\textbf{Luo et al.~\cite{luo2016}} show that the \emph{effective} receptive field of a CNN, the region
+that actually moves an output, is roughly Gaussian and covers only a fraction of the theoretical receptive
+field. It grows only with the square root of the number of stacked convolutions, while downsampling
+enlarges it much faster. \relevance{} this predicts our architecture ablation: an extra U-Net level (one
+more downsampling) raised test PR AUC by 0.064, while doubling the width at a similar parameter count did
+not help.
+
+\textbf{Shi et al.~\cite{shi2015}} (ConvLSTM) replace the matrix products of an LSTM by convolutions, so a
+recurrent model keeps spatial structure, and use it to forecast rainfall from sequences of radar maps.
+\relevance{} ConvLSTM needs several input days. NDWS gives one day of inputs per sample, so we do not use
+it (multi-day data such as WildfireSpreadTS~\cite{gerard2023} would allow it).
+
+\textbf{Cohen and Welling~\cite{cohen2016}} build group-equivariant CNNs whose layers commute with
+$90^\circ$ rotations and reflections, so rotating the input rotates the output exactly. Data augmentation
+with the same transforms only \emph{encourages} this behaviour. \relevance{} we tested the augmentation
+route (Section~\ref{sec:dl_aug}). On our data it did not help, and a model that is equivariant by
+construction would bake in a symmetry the data do not have (Section~\ref{sec:dl_theory}).
+
+\textbf{Wolpert~\cite{wolpert1992}} introduces stacked generalisation: a second-level model learns from
+the predictions of first-level models, and those predictions must come from models that did not see the
+sample, usually via cross-validation, or the second level learns to trust overfitted inputs.
+\relevance{} our hybrid U-Net takes the XGBoost probability as a 13th channel, computed out of fold with
+folds grouped by fire event. It changed test PR AUC by less than 0.003.
+
+\textbf{Prechelt~\cite{prechelt1998}} compares rules for stopping training when the validation error
+stops falling. Waiting longer before stopping gains a little generalisation at a large cost in training
+time. \relevance{} we stop when eval PR AUC has not improved for 5 epochs and keep the best epoch.
+
+\textbf{Focal loss}~\cite{lin2017} (Section~\ref{sec:dl_loss}) and batch normalisation and
+Adam~\cite{ioffe2015,kingma2015} (Section~\ref{sec:dl_theory}) complete the training setup.
+
+\begin{table}[t]
+\centering
+\caption{Methods behind the Phase~2 model and what we found when we tested them. PR AUC is on the test
+split, mean $\pm$ standard deviation over three seeds unless marked as a single run.}
+\label{tab:dl_relwork}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\begin{tabular}{L{1.95cm}L{2.45cm}L{3.8cm}}
+\toprule
+\rowcolor{tblhead}
+\textbf{Paper} & \textbf{Idea} & \textbf{Our test and result} \\
+\midrule
+FCN~\cite{long2015} & dense prediction, any input size & train on centre $32\times32$, score on $64\times64$: 0.172 against 0.269 (single run) \\
+U-Net~\cite{ronneberger2015} & encoder-decoder with skips & backbone; CNN without downsampling ties XGBoost \\
+ERF~\cite{luo2016} & downsampling grows the effective field & depth 3 $\to$ 4: 0.280 $\pm$ 0.002 $\to$ 0.344 $\pm$ 0.007; width 64: no gain \\
+Focal loss~\cite{lin2017} & down-weight easy pixels & about $+0.007$ over weighted BCE; kept \\
+G-CNN~\cite{cohen2016} & rotation equivariance & flips/rotations with wind turned: no gain; not used \\
+Stacking~\cite{wolpert1992} & out-of-fold inputs & XGBoost channel: $+0.002$ / $-0.003$ (single runs); not used \\
+ConvLSTM~\cite{shi2015} & recurrent spatial model & not applicable: one input day \\
+Early stopping~\cite{prechelt1998} & stop on validation & eval PR AUC, patience 5; best epochs 9--16 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{projectbox}
+\textbf{Where Phase~2 sits.} Our final U-Net (depth 4, focal loss) reaches 0.344 $\pm$ 0.007 on the
+official split with full patches. That is above Huot et al.'s CNN (0.284) and in line with the U-Net of
+Esparza et al.~\cite{esparza2026} (0.346), the only other result we found under the same protocol. The
+methods that changed the score were the ones that changed how much of the patch the model sees. Loss,
+augmentation and the Phase~1 features moved it by less than the noise between seeds.
+\end{projectbox}
