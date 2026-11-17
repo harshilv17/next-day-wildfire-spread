@@ -1,6 +1,7 @@
 % Conclusion and Future Work (Piyush)
 % Numbers come from reports/results.csv, reports/ablation.csv, reports/checks/ and the Results section (Phase 1),
-% and from reports/dl/checks/ (Phase 2: seeds.csv, loss_sweep.csv, aug_ablation.csv, ci_diffs_seeds_vs_xgboost.csv).
+% and from reports/dl/checks/ (Phase 2: seeds.csv, loss_sweep.csv, aug_ablation.csv, ci_diffs_seeds_vs_xgboost.csv),
+% reports/dl/results_dl.csv (unet_final_s0..s2), architecture_ablation_summary.md and hybrid_ensemble_summary.md.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -24,11 +25,20 @@ sees the patch only through fixed-radius summaries.
 Finally, we found that the patches are stored south-up, which the dataset does not state. Every
 direction-dependent feature, such as fire upwind, depends on this orientation.
 
-Phase~2 confirms that the missing ingredient was spatial context. A U-Net that sees $44\times44$\,km
-reaches a test PR AUC of 0.275 $\pm$ 0.008 over three seeds against 0.255 $\pm$ 0.002 for XGBoost, and
-it is ahead for every seed when both are scored on the same fires, by 0.012 to 0.027. A CNN that sees only
-$9\times9$\,km, about the reach of our neighbourhood features, ties XGBoost. Unlike XGBoost, the U-Net
-also uses more training data, up to about half of the training set.
+Phase~2 confirms that the missing ingredient was spatial context, and the scores climb a context
+ladder. A CNN that sees only $9\times9$\,km, about the reach of our neighbourhood features, ties XGBoost.
+A three-level U-Net that sees $44\times44$\,km reaches a test PR AUC of 0.280 $\pm$ 0.002. A four-level
+U-Net, whose 92--100\,px receptive field covers the whole patch for every pixel within 14\,px of the
+centre, where the fire is (Section~\ref{sec:dl_theory_rf}), reaches 0.344 $\pm$ 0.007 over three seeds against
+0.255 $\pm$ 0.002 for XGBoost, and it is ahead for every seed when both are scored on the same fires, by 0.080 to 0.094. It now
+also beats the CNN of Huot et al.\ (0.284), though that score comes from a different training pipeline.
+ROC AUC barely moves (0.934 to 0.935), while recall at 1\% false-positive rate rises from 0.399 to 0.459:
+the gain lies in the rare-fire, low-false-alarm region. The three- and four-level seeds ran on different
+Apple GPUs, and hardware alone moves the score by up to 0.02, about a third of this gap. Unlike XGBoost,
+the three-level U-Net also uses more training data, up to about half of the training set. Giving the
+U-Net the XGBoost probability as a 13th input channel brings no measurable gain ($+0.0015$ at three
+levels, $-0.0025$ at four, one seed each): once the U-Net sees enough of the patch, the engineered
+features add nothing it does not already learn.
 
 The smaller choices matter much less. Focal loss beats weighted BCE by about 0.007, and none of the flips
 and rotations we tried helps; rotations are even slightly worse on test. Correct augmentation must turn
@@ -42,8 +52,8 @@ therefore be reported as means over seeds, as we do.
 
 Several limits remain.
 \begin{itemize}
-\item \textbf{Hybrid model.} Giving the U-Net the XGBoost probability as a 13th input channel, computed
-  out-of-fold on train, may combine the engineered features with learned spatial context.
+\item \textbf{Seed-averaged ablations.} The depth, width and hybrid comparisons use one seed each; only
+  the four-level U-Net has been confirmed over three seeds.
 \item \textbf{Calibrated probabilities.} Focal loss~\cite{lin2017} flattens the U-Net's probabilities;
   a recalibration fitted on eval is needed before they are read as fire risk.
 \item \textbf{Multi-day inputs.} Several days of fire history, as in WildfireSpreadTS~\cite{gerard2023},
