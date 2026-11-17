@@ -4,6 +4,8 @@ Use: python -m src.train_dl --model unet --name unet_base
      python -m src.train_dl --model unet --depth 4 --width 16 --seed 1 --name unet_d4_w16
 Loss: --loss bce (default; BCE with pos_weight = train no-fire:fire ratio), focal or bce_dice, all in
 src/dl_losses.py; pixels labelled -1 are masked out of every loss.
+Augmentation: --aug {none,flip,rot,flip_rot} (default none), training batches only, wind direction turned with the
+patch (src/dl_augment.py); --aug-fixed-wind leaves th unturned (ablation).
 Early stopping on eval PR AUC. Threshold for precision/recall/F1 is chosen on eval, never on test.
 Outputs: models/{name}.pt (best checkpoint), reports/dl/results_dl.csv, reports/dl/preds/{name}.npz
 (Phase 1's reports/results.csv is never touched).
@@ -17,6 +19,7 @@ import torch
 from sklearn.metrics import average_precision_score
 
 from src import evaluate as ev
+from src.dl_augment import GROUPS, Augment, th_norm_stats
 from src.dl_data import FireDataset, make_loaders
 from src.dl_losses import LOSSES
 from src.dl_models import build_model
@@ -55,12 +58,15 @@ def main():
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--train-frac", type=float, default=1.0, help="share of training patches used (learning curve)")
+    p.add_argument("--aug", default="none", choices=list(GROUPS), help="training-batch flips/rotations")
+    p.add_argument("--aug-fixed-wind", action="store_true", help="with --aug, do not turn th (ablation)")
     p.add_argument("--name", default=None, help="results row / checkpoint name (default: model)")
     a = p.parse_args()
     name = a.name or a.model
 
     random.seed(a.seed), np.random.seed(a.seed), torch.manual_seed(a.seed)
     dev = device()
+    aug = Augment(a.aug, *th_norm_stats(), seed=a.seed, rotate_wind=not a.aug_fixed_wind) if a.aug != "none" else None
     train_dl, eval_dl, test_dl = make_loaders(a.batch_size, seed=a.seed)
     if a.train_frac < 1:  # a random share of the training patches, normalised with the full-split statistics
         ds = train_dl.dataset
@@ -73,7 +79,8 @@ def main():
     kw = {"width": a.width, **({"depth": a.depth} if a.model == "unet" else {})}
     model = build_model(a.model, **kw).to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=a.lr)
-    print(f"{name}: {a.model} {kw}, loss {a.loss} on {dev}, pos_weight={pos_weight:.1f}")
+    wind = " (th fixed)" if aug and a.aug_fixed_wind else ""
+    print(f"{name}: {a.model} {kw}, loss {a.loss}, aug {a.aug}{wind} on {dev}, pos_weight={pos_weight:.1f}")
 
     MODELS_DIR.mkdir(exist_ok=True)
     ckpt, best, stale = MODELS_DIR / f"{name}.pt", -1.0, 0
@@ -82,6 +89,8 @@ def main():
         total = 0.0
         for x, yb in train_dl:
             x, yb = x.to(dev), yb.to(dev)
+            if aug:
+                x, yb = aug(x, yb)
             opt.zero_grad()
             loss = LOSSES[a.loss](model(x), yb, pos_weight)
             loss.backward()
