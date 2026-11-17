@@ -343,7 +343,7 @@ LightGBM (tuned, 35 feat.) & 0.248 & 0.903 & 0.520 & 0.331 \\
 \begin{itemize}
 \item Same splits and labels as Phase 1; input normalised with train statistics only
 \item \textbf{CNN}: 4 conv layers, sees 9$\times$9\,km, about the Phase 1 neighbourhood features
-\item \textbf{U-Net}: 3 levels, width 32, skip connections; sees 44$\times$44\,km
+\item \textbf{U-Net}: 4 levels, width 32, skip connections; sees the whole patch
 \item \textbf{Hybrid} (next step): the U-Net plus the Phase 1 XGBoost probability as a 13th channel (out-of-fold on train, so no leakage)
 \item Early stopping and the threshold on eval; test scored once
 \end{itemize}
@@ -415,7 +415,7 @@ flip\_rot & 0.221 $\pm$ .003 & 0.274 $\pm$ .001 & 0.713 \\
 \toprule
 Model & PR AUC & ROC AUC & R@1\% & R@5\% \\
 \midrule
-\textbf{U-Net (focal)} & \textbf{0.275} $\pm$ .008 & \textbf{0.923} & \textbf{0.398} & \textbf{0.711} \\
+\textbf{U-Net (final)} & \textbf{0.344} $\pm$ .007 & \textbf{0.935} & \textbf{0.459} & \textbf{0.783} \\
 CNN (BCE) & 0.249 $\pm$ .010 & 0.878 & 0.378 & 0.653 \\
 XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 \bottomrule
@@ -423,9 +423,9 @@ XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 \vspace{0.5em}
 \small
 \begin{itemize}
-\item Paired over the same fires, every U-Net seed beats XGBoost: +0.012, +0.014, +0.027
-\item The CNN only ties XGBoost: context, not deep learning as such, brings the gain
-\item Holds on test locations never seen in training (+0.013, seed 0)
+\item Every U-Net seed beats XGBoost on the same fires: +0.080, +0.085, +0.094
+\item The CNN only ties XGBoost: the gain comes from context, not deep learning as such
+\item Also on locations never seen in training: +0.092
 \end{itemize}
 \column{0.42\textwidth}
 \centering
@@ -441,10 +441,10 @@ XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 \column{0.56\textwidth}
 \footnotesize
 \begin{itemize}
-\item \textbf{Seeds:} networks vary 4--5$\times$ more than XGBoost (std 0.008--0.010 vs 0.002) $\rightarrow$ we report means
+\item \textbf{Seeds:} networks vary 3--5$\times$ more than XGBoost (std 0.007--0.010 vs 0.002) $\rightarrow$ we report means
 \item \textbf{Reruns:} the same seed on the same GPU is not the same model ($-0.022$ to $+0.013$)
-\item \textbf{Calibration:} focal loss flattens the probabilities; ranking is fine, but risk values need recalibration on eval
-\item \textbf{More data helps}, unlike XGBoost: eval PR AUC 0.194 at 5\% of train, 0.224 at 50\%, flat after
+\item \textbf{Calibration:} focal loss flattens the probabilities (top tenth: 2.3\% predicted, 10.6\% burn); ranking is fine, but risk values need recalibration on eval
+\item \textbf{More data helps}, unlike XGBoost (3-level U-Net): eval PR AUC 0.194 at 5\% of train, 0.224 at 50\%, flat after
 \end{itemize}
 \column{0.42\textwidth}
 \centering
@@ -456,8 +456,8 @@ XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 % ---------------------------------------------------------------- Piyush
 \begin{frame}{Phase 2: conclusion}
 \begin{itemize}
-\item \textbf{U-Net with focal loss: 0.275 $\pm$ 0.008 PR AUC} against 0.255 for the best Phase 1 model; ahead for every seed, paired over the same fires
-\item The gain comes from context: the U-Net sees 44$\times$44\,km, the CNN only 9$\times$9 and ties XGBoost
+\item \textbf{Final U-Net with focal loss: 0.344 $\pm$ 0.007 PR AUC} against 0.255 for the best Phase 1 model; ahead for every seed, paired over the same fires
+\item The gain comes from context: the final U-Net sees the whole patch, the CNN only 9$\times$9\,km and ties XGBoost
 \item Small choices matter little: focal vs BCE +0.007, augmentation no gain from any tried mode; seed and rerun noise is as large ($\pm$0.01--0.02)
 \item Report means over seeds: GPU training is not reproducible run by run
 \item \textbf{Next:} the hybrid U-Net (XGBoost probability as a 13th channel), recalibrating the focal probabilities, multi-day inputs
