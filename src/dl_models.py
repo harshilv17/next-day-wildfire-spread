@@ -38,6 +38,10 @@ class UNet(nn.Module):
 
     def __init__(self, in_ch=IN_CH, width=32, depth=3):
         super().__init__()
+        if depth not in (2, 3, 4, 5):
+            raise ValueError(f"Unsupported U-Net depth: {depth}. Must be in [2, 3, 4, 5].")
+        if width not in (16, 32, 64, 128):
+            raise ValueError(f"Unsupported U-Net width: {width}. Must be in [16, 32, 64, 128].")
         widths = [width * 2**i for i in range(depth)]
         self.down = nn.ModuleList([block(a, b) for a, b in zip([in_ch] + widths[:-1], widths)])
         self.pool = nn.MaxPool2d(2)
