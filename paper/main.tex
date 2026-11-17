@@ -70,7 +70,7 @@ spatial features carry the signal: tuning changes the score by only about 0.01, 
 data barely changes it. The model finds fire near the
 existing front but misses spread beyond 5\,km. In Phase~2, a four-level U-Net trained on whole patches
 with focal loss, whose 92--100\,px receptive field covers the whole patch around the fire, reaches 0.344 $\pm$ 0.007 over three seeds,
-above XGBoost (0.255, ahead for every seed on the same fires) and the CNN of Huot et al.\ (0.284). PR AUC rises with the context the model sees, while loss choice and data augmentation
+above XGBoost (0.255 $\pm$ 0.002 over the same seeds, against 0.257 for the single Phase~1 run; ahead for every seed on the same fires) and the CNN of Huot et al.\ (0.284). PR AUC rises with the context the model sees, while loss choice and data augmentation
 change the score less than seed and rerun noise.
 
 \noindent\textit{Index terms:} wildfire spread, remote sensing, gradient boosting, class imbalance,

@@ -25,6 +25,7 @@ src/
   data.py          TFRecords -> data/processed/{train,eval,test}.npz, load_split()
   features.py      pixel table + engineered features
   evaluate.py      shared metrics -> reports/results.csv
+  eval_utils.py    Phase 2 evaluation helpers used by notebook 03
   train.py         XGBoost / LightGBM tuning + final test run
   baselines.py     persistence, logistic regression, RF, raw XGBoost
   ablation.py      feature-group ablation
@@ -32,6 +33,7 @@ src/
 notebooks/
   01_eda.ipynb         EDA figures
   02_evaluation.ipynb  curves, probability maps, SHAP, error analysis
+  03_dl_evaluation.ipynb  Phase 2: recall by distance, event level, dying fires, downwind, saliency
   notes_dataset.md     dataset notes from the paper
 docs/
   data_dictionary.md   channels, units, sources, value ranges
@@ -62,6 +64,7 @@ Then the notebooks:
 ```bash
 jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
 jupyter nbconvert --to notebook --execute --inplace notebooks/02_evaluation.ipynb
+jupyter nbconvert --to notebook --execute --inplace notebooks/03_dl_evaluation.ipynb   # Phase 2; needs the saved DL predictions
 ```
 
 ## Build the report and slides
@@ -117,6 +120,12 @@ src/
   train_dl.py        training loop, early stopping on eval PR AUC, test scoring
   dl_aug_report.py   augmentation ablation table, paired bootstrap and figure
   dl_arch_diagram.py draws reports/dl/figures/dl_architectures.png from the model code
+  dl_gbm_oof.py      fire-event-grouped out-of-fold XGBoost probability maps (13th channel for the hybrid)
+  dl_run_architecture_ablation.py  depth / width ablation
+  dl_run_channel_ablation.py       drop one input channel group at a time
+  dl_run_spatial_crop_ablation.py  train on 32x32 centre crops vs full patches
+  dl_run_hybrid_ensemble.py        13-channel hybrid U-Net and probability averaging
+  eval_utils.py      evaluation helpers for notebooks/03_dl_evaluation.ipynb
 ```
 
 ### How to run
@@ -163,7 +172,7 @@ Test split, mean ± standard deviation over seeds 0, 1 and 2. Bold = best per co
 | Model | PR AUC | ROC AUC | F1 | Recall @ 1% FPR | Recall @ 5% FPR |
 |---|---:|---:|---:|---:|---:|
 | **U-Net, 4 levels, focal (final)** | **0.344 ± 0.007** | **0.935 ± 0.009** | **0.399 ± 0.003** | **0.459 ± 0.003** | **0.783 ± 0.007** |
-| U-Net, 3 levels, focal (`--aug none`) | 0.280 ± 0.002 | 0.934 ± 0.002 | 0.346 ± 0.011 | 0.399 ± 0.002 | 0.724 ± 0.008 |
+| U-Net, 3 levels, focal (`--aug none`, Apple M3) | 0.280 ± 0.002 | 0.934 ± 0.002 | 0.346 ± 0.011 | 0.399 ± 0.002 | 0.724 ± 0.008 |
 | CNN (weighted BCE) | 0.249 ± 0.010 | 0.878 ± 0.011 | 0.335 ± 0.008 | 0.378 ± 0.009 | 0.653 ± 0.006 |
 | XGBoost (Phase 1) | 0.255 ± 0.002 | 0.905 ± 0.001 | 0.330 ± 0.000 | 0.388 ± 0.001 | 0.673 ± 0.001 |
 | Huot et al. CNN (reported, for reference) | 0.284 | | | | |
