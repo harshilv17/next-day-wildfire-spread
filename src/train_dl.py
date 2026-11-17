@@ -9,7 +9,9 @@ Outputs: models/{name}.pt (best checkpoint), reports/dl/results_dl.csv, reports/
 (Phase 1's reports/results.csv is never touched).
 """
 import argparse
+import json
 import random
+import time
 from pathlib import Path
 
 import numpy as np
@@ -47,8 +49,9 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", default="unet", choices=["cnn", "unet"])
     p.add_argument("--loss", default="bce", choices=list(LOSSES), help="training loss (src/dl_losses.py)")
-    p.add_argument("--depth", type=int, default=3, help="unet levels")
-    p.add_argument("--width", type=int, default=32, help="base channels")
+    p.add_argument("--depth", type=int, default=3, choices=[2, 3, 4], help="unet levels (default: 3)")
+    p.add_argument("--width", "--base-filters", dest="width", type=int, default=32, choices=[16, 32, 64],
+                   help="base channels (default: 32)")
     p.add_argument("--drop-group", "--drop-channel-group", dest="drop_group", default=None,
                    choices=["weather", "vegetation", "terrain", "fire", "human"],
                    help="drop one channel group for ablation")
@@ -83,8 +86,9 @@ def main():
     opt = torch.optim.Adam(model.parameters(), lr=a.lr)
     print(f"{name}: {a.model} {kw}, loss {a.loss} on {dev}, pos_weight={pos_weight:.1f}")
 
+    t_start = time.time()
     MODELS_DIR.mkdir(exist_ok=True)
-    ckpt, best, stale = MODELS_DIR / f"{name}.pt", -1.0, 0
+    ckpt, best, stale, best_epoch = MODELS_DIR / f"{name}.pt", -1.0, 0, 0
     for epoch in range(1, a.epochs + 1):
         model.train()
         total = 0.0
@@ -98,19 +102,53 @@ def main():
         score = eval_pr_auc(model, eval_dl, dev)
         print(f"epoch {epoch:>2}  train loss {total / len(train_dl.dataset):.4f}  eval PR AUC {score:.4f}")
         if score > best:
-            best, stale = score, 0
+            best, stale, best_epoch = score, 0, epoch
             torch.save(model.state_dict(), ckpt)
         else:
             stale += 1
             if stale >= a.patience:
-                print(f"early stop, best eval PR AUC {best:.4f}")
+                print(f"early stop, best eval PR AUC {best:.4f} at epoch {best_epoch}")
                 break
 
     model.load_state_dict(torch.load(ckpt))
     p_eval, p_test = predict(model, eval_dl, dev), predict(model, test_dl, dev)
-    threshold = ev.metrics(eval_dl.dataset.y.numpy(), p_eval)["best_f1_threshold"]
+    eval_m = ev.metrics(eval_dl.dataset.y.numpy(), p_eval)
+    threshold = eval_m["best_f1_threshold"]
+    eval_m_at_thresh = ev.metrics(eval_dl.dataset.y.numpy(), p_eval, threshold=threshold)
     ev.RESULTS_CSV, ev.PREDS_DIR = OUT_DIR / "results_dl.csv", OUT_DIR / "preds"  # keep Phase 1 outputs untouched
-    ev.evaluate(test_dl.dataset.y.numpy(), p_test, name, threshold=threshold)
+    test_row = ev.evaluate(test_dl.dataset.y.numpy(), p_test, name, threshold=threshold)
+
+    runtime_sec = time.time() - t_start
+    n_params = sum(p.numel() for p in model.parameters())
+    run_meta = {
+        "name": name,
+        "model": a.model,
+        "depth": a.depth if a.model == "unet" else None,
+        "width": a.width,
+        "crop": a.crop,
+        "drop_group": a.drop_group,
+        "seed": a.seed,
+        "in_ch": in_ch,
+        "n_params": n_params,
+        "best_epoch": best_epoch,
+        "best_eval_pr_auc": float(best),
+        "runtime_sec": round(runtime_sec, 2),
+        "eval_metrics": {
+            "pr_auc": float(eval_m["pr_auc"]),
+            "roc_auc": float(eval_m["roc_auc"]),
+            "precision": float(eval_m_at_thresh["precision"]) if eval_m_at_thresh["precision"] is not None else None,
+            "recall": float(eval_m_at_thresh["recall"]) if eval_m_at_thresh["recall"] is not None else None,
+            "f1": float(eval_m_at_thresh["f1"]) if eval_m_at_thresh["f1"] is not None else None,
+            "threshold": float(threshold),
+            "best_f1": float(eval_m["best_f1"]),
+            "best_f1_threshold": float(eval_m["best_f1_threshold"]),
+            "recall_at_1fpr": float(eval_m["recall_at_1fpr"]),
+            "recall_at_5fpr": float(eval_m["recall_at_5fpr"]),
+        },
+        "test_metrics": {k: float(v) if isinstance(v, (int, float, np.floating, np.integer)) else v for k, v in test_row.items()}
+    }
+    with open(MODELS_DIR / f"{name}_run.json", "w") as f:
+        json.dump(run_meta, f, indent=2)
 
 
 if __name__ == "__main__":

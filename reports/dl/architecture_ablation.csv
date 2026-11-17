@@ -1,0 +1,6 @@
+experiment,model,ablation_group,depth,width,n_params,best_epoch,training_duration_s,eval_pr_auc,eval_roc_auc,eval_threshold,eval_f1,test_pr_auc,test_roc_auc,precision,recall,f1,recall_at_1fpr,recall_at_5fpr
+depth_2,unet_d2_w32,depth_ablation,2,32,104385,7,446.6300,0.2016,0.8965,0.9611,0.2937,0.2585,0.9096,0.2645,0.4718,0.3390,0.3728,0.6771
+depth_3 / width_32 (Baseline),unet_base,baseline,3,32,469761,7,778.2000,0.2188,0.9250,0.9524,0.3045,0.2688,0.9289,0.2674,0.5198,0.3531,0.3926,0.7027
+depth_4,unet_d4_w32,depth_ablation,4,32,1929601,11,791.9000,0.3008,0.9392,0.9527,0.3606,0.3371,0.9338,0.2961,0.5749,0.3909,0.4459,0.7845
+width_16,unet_d3_w16,width_ablation,3,16,118657,7,277.9900,0.2158,0.9098,0.9404,0.3012,0.2627,0.9248,0.2454,0.5545,0.3402,0.3865,0.6993
+width_64,unet_d3_w64,width_ablation,3,64,1869313,7,1126.6900,0.2251,0.9237,0.9483,0.3073,0.2718,0.9250,0.2628,0.5146,0.3479,0.3888,0.6984
