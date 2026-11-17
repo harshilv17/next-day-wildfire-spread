@@ -269,8 +269,9 @@ All experiments were executed on Apple Silicon MPS with strictly identical train
 ### 1. Does increasing depth improve performance?
 - Comparing **Depth 2 (104k params)** $\to$ **Depth 3 (470k params)** $\to$ **Depth 4 (1.93M params)** at Base Width 32:
   - Test PR AUC: Depth 2 ({d2_row['test_pr_auc']:.4f}), Depth 3 ({base_row['test_pr_auc']:.4f}), Depth 4 ({d4_row['test_pr_auc']:.4f}).
-  - **Depth 2 (-0.0103 vs base):** With only 1 downsampling stage (32×32 bottleneck), the effective receptive field is constrained to local neighbourhoods (~20 km), missing synoptic-scale fire weather drivers.
-  - **Depth 4 (+0.0683 vs base):** Adding a 3rd downsampling stage (8×8 bottleneck) yields a substantial jump in both Eval PR AUC (0.2188 $\to$ 0.3008, +0.0820) and Test PR AUC (0.2688 $\to$ 0.3371, +0.0683). This gain is well outside the typical single-seed run-to-run noise envelope ($\le 0.02$), indicating that multi-scale receptive field coverage across the entire 64×64 km patch provides critical predictive context for next-day spread.
+  - Receptive field of one output pixel (measured from input gradients): **18×18 px** at depth 2, **44×44 px** at depth 3, **92×92 px** at depth 4. Only depth 4 lets every output pixel see the whole 64×64 km patch.
+  - **Depth 2 (-0.0103 vs base):** within run-to-run noise. Its 18 km reach is about that of the Phase 1 neighbourhood features.
+  - **Depth 4 (+0.0683 vs base):** Eval PR AUC 0.2188 $\to$ 0.3008 (+0.0820), test PR AUC 0.2688 $\to$ 0.3371 (+0.0683), far outside run-to-run noise ($\le 0.02$). Confirmed with 3 seeds and focal loss (Section 5).
 
 ### 2. Does increasing width improve performance?
 - Comparing **Width 16 (119k params)** $\to$ **Width 32 (470k params)** $\to$ **Width 64 (1.87M params)** at Depth 3:
@@ -287,9 +288,11 @@ All experiments were executed on Apple Silicon MPS with strictly identical train
 - **`unet_base` (Depth 3, Width 32, 469,761 parameters):** Serves as the robust, lightweight baseline providing solid convergence, fast training (~13 min), and low memory overhead (< 500 MB).
 - **`unet_d4_w32` (Depth 4, Width 32, 1,929,601 parameters):** Demonstrates the strongest predictive performance overall, providing the deep receptive field required for regional spread dynamics while keeping channel width compact at 32.
 
-### 5. Methodological Limitations
-- All runs were conducted on a single fixed seed (seed 0).
-- While the width differences ($\\Delta \\le 0.006$) and depth 2 drop (-0.010) fall within the expected stochastic training noise band ($\\le 0.02$), the depth 4 gain (+0.068) is large enough to suggest genuine structural advantage, though multi-seed validation would be required to establish exact confidence intervals.
+### 5. Seeds and confirmation
+- The ablation runs above use one seed (0) and weighted BCE. The width changes (at most 0.006) and the depth-2 drop (0.010) are within run-to-run noise ($\\le 0.02$, `reports/dl/checks/reruns.csv`).
+- **Depth 4 is confirmed.** It was retrained with focal loss on seeds 0, 1 and 2 (`unet_final_s0..s2`, the final Phase 2 model): test PR AUC **0.344 ± 0.007**, against **0.280 ± 0.002** for depth 3 with the same loss and no augmentation (`unet_focal_aug_none_s0..s2`). The gap is +0.064, and every depth-4 seed lands between 0.338 and 0.351.
+- Recall at 1% FPR goes from 0.399 ± 0.002 to 0.459 ± 0.003, while ROC AUC is unchanged (0.934 vs 0.935): the gain is in the rare-fire, low-false-alarm region.
+- Caveat: the depth-4 and depth-3 seed runs were trained on different Apple-GPU machines. Hardware alone moves test PR AUC by up to 0.02, a third of the gap.
 
 ---
 
