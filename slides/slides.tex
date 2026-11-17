@@ -1,5 +1,5 @@
-% Phase 1 deck. Build: cd slides && tectonic slides.tex  ->  slides/slides.pdf
-% Figures come from ../reports/figures/ only. Slide owners are noted above each frame.
+% Phase 1 + 2 deck. Build: cd slides && tectonic slides.tex  ->  slides/slides.pdf
+% Figures come from ../reports/figures/ (Phase 1) and ../reports/dl/figures/ (Phase 2) only. Slide owners are noted above each frame.
 \documentclass[aspectratio=169,11pt]{beamer}
 \usepackage{booktabs}
 \usepackage{array}
@@ -20,12 +20,12 @@
   {\color{accent}\rule{2.2cm}{1.2pt}}\par}
 \setbeamertemplate{footline}{\hfill{\scriptsize\color{muted}\insertframenumber\,/\,\inserttotalframenumber}\hspace{1.2em}\vspace{0.8em}}
 \setlength{\leftmargini}{1.1em}
-\graphicspath{{../reports/figures/}}
+\graphicspath{{../reports/figures/}{../reports/dl/figures/}}
 
 \newcommand{\src}[1]{\par\vfill{\scriptsize\color{muted}#1}}
 
 \title{Next Day Wildfire Spread Prediction}
-\subtitle{Phase 1: per-pixel boosted trees with engineered spatial features}
+\subtitle{Phase 1: per-pixel boosted trees \quad Phase 2: whole-patch deep learning}
 \author{Harshil \and Sushant \and Priyanshu \and Sachin \and Piyush}
 \institute{AML course project \quad CS \& AI Department, Rishihood University}
 \date{}
@@ -38,6 +38,8 @@
 {\color{accent}\Huge\bfseries Next Day Wildfire Spread\\[0.2em] Prediction\par}
 \vspace{0.6em}
 {\large Phase 1: per-pixel boosted trees with engineered spatial features\par}
+\vspace{0.2em}
+{\large Phase 2: whole-patch deep learning\par}
 \vspace{0.4em}
 {\color{accent}\rule{3cm}{1.5pt}\par}
 \vspace{1.2em}
@@ -319,6 +321,148 @@ LightGBM (tuned, 35 feat.) & 0.248 & 0.903 & 0.520 & 0.331 \\
 \item \textbf{Location-disjoint splits:} 30\% of test patches share their location with a training patch; a split that keeps locations apart would give a stricter test
 \item \textbf{Uncertain labels:} better handling of cloud and smoke ($-1$) pixels than simply ignoring them
 \end{itemize}
+\end{frame}
+
+% ================================================================ Phase 2
+% ---------------------------------------------------------------- Piyush
+\begin{frame}[plain]
+\vfill
+{\color{accent}\Huge\bfseries Phase 2\par}
+\vspace{0.4em}
+{\large Whole-patch deep learning: CNN and U-Net\par}
+\vspace{0.4em}
+{\color{accent}\rule{3cm}{1.5pt}\par}
+\vfill
+\end{frame}
+
+% ---------------------------------------------------------------- Piyush
+\begin{frame}{Three models that see the whole patch}
+\begin{columns}[T]
+\column{0.36\textwidth}
+\footnotesize
+\begin{itemize}
+\item Same splits and labels as Phase 1; input normalised with train statistics only
+\item \textbf{CNN}: 4 conv layers, sees 9$\times$9\,km, about the Phase 1 neighbourhood features
+\item \textbf{U-Net}: 3 levels, width 32, skip connections; sees 44$\times$44\,km
+\item \textbf{Hybrid} (next step): the U-Net plus the Phase 1 XGBoost probability as a 13th channel (out-of-fold on train, so no leakage)
+\item Early stopping and the threshold on eval; test scored once
+\end{itemize}
+\column{0.62\textwidth}
+\centering
+\vspace{-0.4em}
+\includegraphics[width=\textwidth]{dl_architectures.png}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------- Priyanshu
+\begin{frame}{Which loss? Focal, by a small margin}
+\begin{columns}[T]
+\column{0.42\textwidth}
+\small
+\begin{itemize}
+\item Fire is 1\% of pixels; the loss decides how much it counts
+\item Weighted BCE, focal and BCE + Dice, 3 seeds each; chosen on eval PR AUC
+\item Focal: eval 0.226 vs 0.222 (BCE), test 0.275 vs 0.269, ahead on every seed
+\item Small gain: a same-seed rerun moves a score by up to 0.02
+\end{itemize}
+\column{0.56\textwidth}
+\centering
+\vspace{0.6em}
+\includegraphics[width=\textwidth]{loss_sweep.png}
+\end{columns}
+\src{Mean $\pm$ std over seeds 0--2; Kaggle T4 GPU. Paper: Loss Function Sweep.}
+\end{frame}
+
+% ---------------------------------------------------------------- Piyush
+\begin{frame}{Augmentation: flips and rotations do not help}
+\begin{columns}[T]
+\column{0.36\textwidth}
+\footnotesize
+\begin{itemize}
+\item Random flips / 90$^\circ$ turns of training patches; the label and all 12 channels move together
+\item The wind direction \texttt{th} must turn too: south-up grid $\Rightarrow$ \texttt{rot90} adds $+90^\circ$; flips: $360-\theta$, $180-\theta$
+\item 13 runs on one Mac (3 seeds each), so hardware noise does not enter
+\item Every paired difference contains 0; rotations are lower on test for all 3 seeds
+\item Turning the wind: no measurable difference (+0.001)
+\item \textbf{Final U-Net: no augmentation}
+\end{itemize}
+\column{0.62\textwidth}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+\texttt{-{}-aug} & Eval PR AUC & Test PR AUC & R@5\% \\
+\midrule
+\textbf{none} & 0.222 $\pm$ .003 & 0.280 $\pm$ .002 & 0.724 \\
+flip & 0.224 $\pm$ .005 & 0.283 $\pm$ .004 & 0.728 \\
+rot & 0.226 $\pm$ .004 & 0.274 $\pm$ .005 & 0.718 \\
+flip\_rot & 0.221 $\pm$ .003 & 0.274 $\pm$ .001 & 0.713 \\
+\bottomrule
+\end{tabular}
+\vspace{0.5em}
+\includegraphics[width=\textwidth]{aug_ablation.png}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------- Priyanshu
+\begin{frame}{Results: the U-Net beats the best Phase 1 model}
+\begin{columns}[T]
+\column{0.56\textwidth}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}l r r r r@{}}
+\toprule
+Model & PR AUC & ROC AUC & R@1\% & R@5\% \\
+\midrule
+\textbf{U-Net (focal)} & \textbf{0.275} $\pm$ .008 & \textbf{0.923} & \textbf{0.398} & \textbf{0.711} \\
+CNN (BCE) & 0.249 $\pm$ .010 & 0.878 & 0.378 & 0.653 \\
+XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
+\bottomrule
+\end{tabular}
+\vspace{0.5em}
+\small
+\begin{itemize}
+\item Paired over the same fires, every U-Net seed beats XGBoost: +0.012, +0.014, +0.027
+\item The CNN only ties XGBoost: context, not deep learning as such, brings the gain
+\item Holds on test locations never seen in training (+0.013, seed 0)
+\end{itemize}
+\column{0.42\textwidth}
+\centering
+\vspace{0.4em}
+\includegraphics[width=\textwidth]{dl_ci_events.png}
+\end{columns}
+\src{Test split, mean $\pm$ std over seeds 0--2; intervals: 95\% bootstrap over fire events.}
+\end{frame}
+
+% ---------------------------------------------------------------- Priyanshu
+\begin{frame}{Can we trust the U-Net?}
+\begin{columns}[T]
+\column{0.56\textwidth}
+\footnotesize
+\begin{itemize}
+\item \textbf{Seeds:} networks vary 4--5$\times$ more than XGBoost (std 0.008--0.010 vs 0.002) $\rightarrow$ we report means
+\item \textbf{Reruns:} the same seed on the same GPU is not the same model ($-0.022$ to $+0.013$)
+\item \textbf{Calibration:} focal loss flattens the probabilities; ranking is fine, but risk values need recalibration on eval
+\item \textbf{More data helps}, unlike XGBoost: eval PR AUC 0.194 at 5\% of train, 0.224 at 50\%, flat after
+\end{itemize}
+\column{0.42\textwidth}
+\centering
+\vspace{0.6em}
+\includegraphics[width=\textwidth]{dl_learning_curve.png}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------- Piyush
+\begin{frame}{Phase 2: conclusion}
+\begin{itemize}
+\item \textbf{U-Net with focal loss: 0.275 $\pm$ 0.008 PR AUC} against 0.255 for the best Phase 1 model; ahead for every seed, paired over the same fires
+\item The gain comes from context: the U-Net sees 44$\times$44\,km, the CNN only 9$\times$9 and ties XGBoost
+\item Small choices matter little: focal vs BCE +0.007, augmentation no gain from any tried mode; seed and rerun noise is as large ($\pm$0.01--0.02)
+\item Report means over seeds: GPU training is not reproducible run by run
+\item \textbf{Next:} the hybrid U-Net (XGBoost probability as a 13th channel), recalibrating the focal probabilities, multi-day inputs
+\end{itemize}
+\src{Side finding carried over from Phase 1: the south-up grid also fixes how augmentation must turn the wind.}
 \end{frame}
 
 % ---------------------------------------------------------------- Piyush

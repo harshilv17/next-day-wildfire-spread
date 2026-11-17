@@ -1,5 +1,6 @@
 % Conclusion and Future Work (Piyush)
-% Numbers come from reports/results.csv, reports/ablation.csv, reports/checks/ and the Results section.
+% Numbers come from reports/results.csv, reports/ablation.csv, reports/checks/ and the Results section (Phase 1),
+% and from reports/dl/checks/ (Phase 2: seeds.csv, loss_sweep.csv, aug_ablation.csv, ci_diffs_seeds_vs_xgboost.csv).
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -23,15 +24,28 @@ sees the patch only through fixed-radius summaries.
 Finally, we found that the patches are stored south-up, which the dataset does not state. Every
 direction-dependent feature, such as fire upwind, depends on this orientation.
 
+Phase~2 confirms that the missing ingredient was spatial context. A U-Net that sees $44\times44$\,km
+reaches a test PR AUC of 0.275 $\pm$ 0.008 over three seeds against 0.255 $\pm$ 0.002 for XGBoost, and
+it is ahead for every seed when both are scored on the same fires, by 0.012 to 0.027. A CNN that sees only
+$9\times9$\,km, about the reach of our neighbourhood features, ties XGBoost. Unlike XGBoost, the U-Net
+also uses more training data, up to about half of the training set.
+
+The smaller choices matter much less. Focal loss beats weighted BCE by about 0.007, and none of the flips
+and rotations we tried helps; rotations are even slightly worse on test. Correct augmentation must turn
+the wind direction with the patch, and on a south-up grid a 90-degree turn of the array adds $90^\circ$ to
+it. These differences are of the same size as the noise of training itself: a second run with the same
+seed on the same GPU moves the score by up to 0.02. Results for neural networks on this dataset should
+therefore be reported as means over seeds, as we do.
+
 \section{Future Work}
 \label{sec:future}
 
-Phase~2 will address the limits found above.
+Several limits remain.
 \begin{itemize}
-\item \textbf{Whole-patch models.} A U-Net~\cite{ronneberger2015} or CNN that sees the whole patch
-  can learn the shape of the fire front instead of a fixed-radius halo.
-\item \textbf{Imbalance-aware losses.} Focal loss~\cite{lin2017} or a class-weighted segmentation
-  loss can replace negative subsampling.
+\item \textbf{Hybrid model.} Giving the U-Net the XGBoost probability as a 13th input channel, computed
+  out-of-fold on train, may combine the engineered features with learned spatial context.
+\item \textbf{Calibrated probabilities.} Focal loss~\cite{lin2017} flattens the U-Net's probabilities;
+  a recalibration fitted on eval is needed before they are read as fire risk.
 \item \textbf{Multi-day inputs.} Several days of fire history, as in WildfireSpreadTS~\cite{gerard2023},
   may help tell growing fires from dying ones.
 \item \textbf{Location-disjoint splits.} 30\% of test patches share their location with a training

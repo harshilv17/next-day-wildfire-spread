@@ -1,0 +1,11 @@
+a,b,diff,lo95,hi95,share_a_better
+unet_focal_aug_flip_s0,unet_focal_aug_none_s0,0.0050,-0.0068,0.0128,0.7960
+unet_focal_aug_flip_s1,unet_focal_aug_none_s1,-0.0006,-0.0108,0.0102,0.4500
+unet_focal_aug_flip_s2,unet_focal_aug_none_s2,0.0031,-0.0080,0.0119,0.7000
+unet_focal_aug_rot_s0,unet_focal_aug_none_s0,-0.0118,-0.0243,0.0019,0.0570
+unet_focal_aug_rot_s1,unet_focal_aug_none_s1,-0.0054,-0.0197,0.0050,0.1100
+unet_focal_aug_rot_s2,unet_focal_aug_none_s2,-0.0022,-0.0198,0.0098,0.3420
+unet_focal_aug_flip_rot_s0,unet_focal_aug_none_s0,-0.0068,-0.0188,0.0011,0.0470
+unet_focal_aug_flip_rot_s1,unet_focal_aug_none_s1,-0.0065,-0.0182,0.0041,0.1160
+unet_focal_aug_flip_rot_s2,unet_focal_aug_none_s2,-0.0068,-0.0215,0.0028,0.0960
+unet_focal_aug_flip_rot_s0,unet_focal_aug_nowind,0.0011,-0.0133,0.0129,0.5710
