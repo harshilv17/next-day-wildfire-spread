@@ -26,7 +26,11 @@ from src.features import MAX_DIST
 
 ROOT = Path(__file__).resolve().parent.parent
 PRED_DIRS = [ROOT / "reports" / "dl" / "preds", ROOT / "reports" / "preds"]  # Phase 2 first, then Phase 1
-RESULTS = {"phase1": ROOT / "reports" / "results.csv", "phase2": ROOT / "reports" / "dl" / "results_dl.csv"}
+# Phase 2 metrics live in two files: runs.csv holds every Kaggle run (seeds, reruns, cnn_bce), results_dl.csv the
+# reference and ablation runs. Rows for the same run are identical; the later file wins.
+RESULTS = [("phase1", ROOT / "reports" / "results.csv"),
+           ("phase2", ROOT / "reports" / "dl" / "checks" / "runs.csv"),
+           ("phase2", ROOT / "reports" / "dl" / "results_dl.csv")]
 NORM_STATS = ROOT / "reports" / "dl" / "norm_stats.json"
 MODELS_DIR = ROOT / "models"
 
@@ -61,7 +65,7 @@ def load_preds(name):
 
 def load_results():
     """Test metrics of every Phase 1 and Phase 2 run in one table, indexed by model, with a `phase` column."""
-    tables = [pd.read_csv(path).assign(phase=phase) for phase, path in RESULTS.items() if path.exists()]
+    tables = [pd.read_csv(path).assign(phase=phase) for phase, path in RESULTS if path.exists()]
     return pd.concat(tables).drop_duplicates("model", keep="last").set_index("model")
 
 
