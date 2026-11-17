@@ -8,6 +8,8 @@ Normalisation is fit on train only: clip each channel to its train 0.5-99.5 perc
 (the raw data has bad values, e.g. th = -505870), then z-score. PrevFireMask is left as is.
 Label -1 (unlabelled) is kept so the loss and metrics can mask it.
 """
+from pathlib import Path
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
