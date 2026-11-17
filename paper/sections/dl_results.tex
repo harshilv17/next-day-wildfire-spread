@@ -1,0 +1,119 @@
+% Phase 2 results (Sachin)
+% Numbers come from notebooks/03_dl_evaluation.ipynb: reports/dl/results_table.md, reports/dl/dl_eval_*.csv and
+% the figures reports/dl/figures/dl_eval_*.png. Shared code with Phase 1: src/eval_utils.py.
+
+\section{Deep Learning Results}
+\label{sec:dl_results}
+
+Phase~1 left two errors (Section~\ref{sec:results}): the tuned XGBoost found no fire more than 5\,km from the
+day-$t$ front, and it raised false alarms around fires that were dying down. This section asks whether the final
+U-Net (depth 4, focal loss, Table~\ref{tab:dl_final}), which sees the whole patch, fixes them. Every number is
+computed with the same code as Phase~1 on the same 6\,727\,699 labelled test pixels; thresholds are the ones chosen
+on eval. Single-model figures use seed 0; the Phase~1 predictions are refits with the committed hyperparameters
+that reproduce Table~\ref{tab:results} exactly.
+
+\subsection{Overall performance}
+
+Over three seeds the final U-Net reaches a test PR AUC of $0.344 \pm 0.007$ against $0.255 \pm 0.002$ for XGBoost
+(Table~\ref{tab:dl_seeds}). Resampling whole fire events, its lead over XGBoost is $+0.080$ (0.058 to 0.113)
+for seed 0, and the interval excludes zero for every seed (Section~\ref{sec:dl_validation}). The gain is at low false-alarm rates, where an agency
+would operate: recall at 1\% FPR rises from 0.388 to 0.459 and at 5\% FPR from 0.673 to 0.783, while ROC AUC moves
+only from 0.905 to 0.935 (Fig.~\ref{fig:dl_pr}). The depth-3 U-Net ($0.275 \pm 0.008$) and the CNN ($0.249 \pm 0.010$) stay within about 0.02 of
+XGBoost, and the depth-4 U-Net trained with weighted BCE scores 0.337, so the step that matters is depth, which lets
+a pixel near the centre see the whole patch (Section~\ref{sec:dl_theory_rf}). Feeding the XGBoost map to the U-Net
+as an extra channel (0.335) or averaging the two adds nothing.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\columnwidth]{dl/figures/dl_eval_pr_curves.png}
+\caption{Precision-recall on test, seed 0. Solid: Phase~2; dashed: Phase~1. Dots: eval-chosen thresholds.}
+\label{fig:dl_pr}
+\end{figure}
+
+\subsection{Fire far from the front}
+
+Fire 3\,km or more from the day-$t$ fire is 43\% of all next-day fire, and Phase~1 found almost none of it.
+The final U-Net finds 33\% at 3--5\,km (XGBoost 4\%), and 22\%, 16\% and 21\% at 6--10, 11--20 and over 20\,km,
+where XGBoost finds none (Fig.~\ref{fig:dl_dist}a). The share of missed pixels lying beyond 5\,km falls from 64\%
+to 57\%. Near the fire its recall at its own threshold is lower (0.79 against 0.96 at 1\,km), but this is a
+threshold effect: ranked within each distance band, the U-Net is ahead in every band, by $1.4\times$ at 1\,km and
+$3$--$7\times$ from 3 to 20\,km (Fig.~\ref{fig:dl_dist}b).
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.9\textwidth]{dl/figures/dl_eval_recall_by_distance.png}
+\caption{(a) Recall of next-day fire by distance to the nearest day-$t$ fire, at each model's eval threshold;
+labels give each band's share of next-day fire. (b) PR AUC within each band; grey: no skill (band fire rate).}
+\label{fig:dl_dist}
+\end{figure*}
+
+Because skill tens of kilometres from any fire is surprising, we tested four other explanations. It is not
+memorised places: on the 1\,186 test patches whose location is not in the training set, PR AUC beyond 5\,km is
+0.179 (no skill 0.005), higher than on the 503 seen ones (0.066). It is not fire hidden under cloud: only 8.6\% of
+far fire lies near a masked day-$t$ pixel, and excluding those pixels leaves recall at 0.20. It is not a
+patch-level shortcut: ranking far pixels within each patch only, the U-Net reaches a median ROC AUC of 0.97 against
+0.80 for XGBoost. And it does not hang on one input: blanking any channel group at inference keeps far-region PR AUC
+between 0.13 and 0.15. The worst Phase~1 misses, 15--40\,km jumps and a fire growing from 8 to 260 pixels in a day,
+are still missed (Fig.~\ref{fig:dl_maps}).
+
+\subsection{False alarms on dying fires}
+
+False positives fall from 138\,714 to 108\,623 ($-22\%$), by 25\% in patches whose fire shrinks and by 18\% in
+the others (Fig.~\ref{fig:dl_dying}a), because the predicted halo is tighter and follows the shape of the fire
+(Fig.~\ref{fig:dl_maps}). The U-Net does not, however, know which fire is dying. Among pixels burning on day $t$,
+it still flags 81\% of those that go out, and it separates them from those that keep burning no better than
+XGBoost (ROC AUC 0.66 against 0.65; Fig.~\ref{fig:dl_dying}b). Its mean score around dying and growing fires is
+the same. This error is reduced, not fixed.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{dl/figures/dl_eval_dying_fires.png}
+\caption{(a) False-positive pixels per patch in patches whose fire shrinks (dying) or not. (b) Share of day-$t$
+burning pixels flagged as fire, split by whether they still burn on day $t+1$; legend: ROC AUC between the two.}
+\label{fig:dl_dying}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{dl/figures/dl_eval_prob_maps.png}
+\caption{The 10 test patches of Fig.~\ref{fig:maps}: fire on day $t$, true fire on day $t+1$, and the scores of
+XGBoost and the final U-Net; black line: eval threshold; arrow: where the wind blows.}
+\label{fig:dl_maps}
+\end{figure*}
+
+\subsection{Fire events}
+
+Pooled pixels are dominated by a few large fires (Section~\ref{sec:events}). Scored per event, the gap is much
+larger: mean PR AUC 0.506 (0.480 to 0.535) for the final U-Net against 0.187 (0.161 to 0.215) for XGBoost, a
+paired gain of $+0.318$ (0.288 to 0.352), with the U-Net better in 92\% of the 240 events. The gain is largest on
+small fires (0.587 against 0.157), where a per-pixel model has little neighbourhood signal. At the eval threshold
+the U-Net finds fire in 98.8\% of events, against 47.9\% for XGBoost and 60.8\% for persistence.
+
+\subsection{What the U-Net looks at, and physical plausibility}
+
+Like XGBoost, the U-Net relies mostly on where the fire is now. Blanking the day-$t$ fire mask at inference costs
+0.171 PR AUC, the same as retraining without it (0.169), and the fire channel holds 47\% of the gradient saliency;
+in Phase~1 the fire-neighbourhood features held most of the SHAP mass (Fig.~\ref{fig:shap}). Vegetation (0.013)
+and weather (0.009) matter a little more to the trained network than retraining without them suggests (0.010,
+0.002), so a network retrained without a group partly makes up for it from the others. Population is not used.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{dl/figures/dl_eval_saliency_maps.png}
+\caption{Gradient of the patch's predicted fire with respect to the inputs (final U-Net). Blue outline: true
+day-$t+1$ fire; arrow: where the wind blows.}
+\label{fig:dl_saliency}
+\end{figure}
+
+\textbf{Physical plausibility.} Two patterns agree with how fires spread. The saliency is highest on burning
+pixels and on the edges of the fire ($5.2\times$ the patch average on burning pixels, $4.4\times$ at 1\,km,
+$1.9\times$ at 2\,km, Fig.~\ref{fig:dl_saliency}), so the model reads the front, not the interior. The predicted
+area follows the shape of the fire instead of drawing a round halo, which is what removes false alarms around
+small fires. One pattern does not: neither model pushes risk
+downwind. At 5\,km the score is only 1.03 (XGBoost) and 1.01 (U-Net) times higher downwind than upwind and does not
+grow with wind speed, whereas next-day fire on the training split is 1.14 to 3.1 times more frequent downwind as wind
+rises from below 3 to above 8\,m/s (Fig.~\ref{fig:wind}); the U-Net's saliency is as large upwind as downwind, and
+rotating the wind with the patch during training changes nothing (Section~\ref{sec:dl_aug}). The wind input is a
+daily value on a 4\,km grid, almost constant over a patch, which may be too coarse to locate a downwind front.
+Together with the dying fires, this points to what a single day of inputs lacks (burnt fuel, suppression, next-day
+weather) rather than to the model.
