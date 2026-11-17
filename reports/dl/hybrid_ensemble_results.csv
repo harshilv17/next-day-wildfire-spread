@@ -1,0 +1,14 @@
+model,category,m1,m2,alpha,channels,n_params,eval_pr_auc,eval_roc_auc,eval_threshold,eval_f1,test_pr_auc,test_roc_auc,precision,recall,f1,recall_at_1fpr,recall_at_5fpr
+xgboost,Parent Model,xgboost,none,0.0000,35 tabular,0,0.2071,0.8963,0.9152,0.2929,0.2565,0.9058,0.2425,0.5264,0.3321,0.3884,0.6752
+unet_base,Parent Model,unet_base,none,1.0000,12,469761,0.2188,0.9250,0.9524,0.3045,0.2688,0.9289,0.2674,0.5198,0.3531,0.3926,0.7027
+unet_d4_w32,Parent Model,unet_d4_w32,none,1.0000,12,1929601,0.3008,0.9392,0.9527,0.3606,0.3371,0.9338,0.2961,0.5749,0.3909,0.4459,0.7845
+unet_hybrid_base,Hybrid Model,unet_hybrid_base,none,1.0000,13,470049,0.2172,0.9245,0.9479,0.3000,0.2703,0.9321,0.2527,0.5074,0.3374,0.3794,0.6967
+unet_hybrid_d4,Hybrid Model,unet_hybrid_d4,none,1.0000,13,1929889,0.2878,0.9457,0.9653,0.3535,0.3346,0.9417,0.3005,0.5470,0.3879,0.4453,0.7701
+ens_base_xgb_avg,Simple Ensemble,unet_base,xgboost,0.5000,Ensemble,469761,0.2224,0.9265,0.9284,0.3022,0.2720,0.9290,0.2556,0.5301,0.3449,0.3980,0.6951
+ens_base_xgb_weighted,Weighted Ensemble,unet_base,xgboost,0.7200,Ensemble,469761,0.2239,0.9283,0.9425,0.3035,0.2735,0.9307,0.2718,0.5100,0.3546,0.3983,0.6995
+ens_d4_xgb_avg,Simple Ensemble,unet_d4_w32,xgboost,0.5000,Ensemble,1929601,0.2440,0.9365,0.9265,0.3104,0.2956,0.9347,0.2679,0.5301,0.3559,0.4100,0.7248
+ens_d4_xgb_weighted,Weighted Ensemble,unet_d4_w32,xgboost,1.0000,Ensemble,1929601,0.3008,0.9392,0.9527,0.3606,0.3371,0.9338,0.2961,0.5749,0.3909,0.4459,0.7845
+ens_hybrid_base_xgb_avg,Simple Ensemble,unet_hybrid_base,xgboost,0.5000,Ensemble,470049,0.2211,0.9241,0.9320,0.2993,0.2769,0.9286,0.2584,0.5141,0.3439,0.3930,0.6875
+ens_hybrid_base_xgb_weighted,Weighted Ensemble,unet_hybrid_base,xgboost,0.7400,Ensemble,470049,0.2227,0.9260,0.9361,0.3010,0.2779,0.9312,0.2542,0.5203,0.3416,0.3897,0.6906
+ens_hybrid_d4_xgb_avg,Simple Ensemble,unet_hybrid_d4,xgboost,0.5000,Ensemble,1929889,0.2359,0.9376,0.9350,0.3083,0.2901,0.9365,0.2625,0.5223,0.3494,0.4042,0.7006
+ens_hybrid_d4_xgb_weighted,Weighted Ensemble,unet_hybrid_d4,xgboost,1.0000,Ensemble,1929889,0.2878,0.9457,0.9653,0.3535,0.3346,0.9417,0.3005,0.5470,0.3879,0.4453,0.7701

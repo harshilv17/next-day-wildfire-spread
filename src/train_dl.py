@@ -52,6 +52,8 @@ def main():
     p.add_argument("--depth", type=int, default=3, choices=[2, 3, 4], help="unet levels (default: 3)")
     p.add_argument("--width", "--base-filters", dest="width", type=int, default=32, choices=[16, 32, 64],
                    help="base channels (default: 32)")
+    p.add_argument("--hybrid", action="store_true",
+                   help="concatenate 13th channel with GBM probabilities (OOF train, final eval/test)")
     p.add_argument("--drop-group", "--drop-channel-group", dest="drop_group", default=None,
                    choices=["weather", "vegetation", "terrain", "fire", "human"],
                    help="drop one channel group for ablation")
@@ -70,7 +72,7 @@ def main():
     random.seed(a.seed), np.random.seed(a.seed), torch.manual_seed(a.seed)
     dev = device()
     train_dl, eval_dl, test_dl = make_loaders(
-        a.batch_size, seed=a.seed, drop_group=a.drop_group, crop=a.crop, crop_eval=a.crop_eval
+        a.batch_size, seed=a.seed, drop_group=a.drop_group, crop=a.crop, crop_eval=a.crop_eval, hybrid=a.hybrid
     )
     if a.train_frac < 1:  # a random share of the training patches, normalised with the full-split statistics
         ds = train_dl.dataset
@@ -125,6 +127,7 @@ def main():
         "model": a.model,
         "depth": a.depth if a.model == "unet" else None,
         "width": a.width,
+        "hybrid": a.hybrid,
         "crop": a.crop,
         "drop_group": a.drop_group,
         "seed": a.seed,
