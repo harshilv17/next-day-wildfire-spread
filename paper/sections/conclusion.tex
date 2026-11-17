@@ -30,7 +30,7 @@ ladder. A CNN that sees only $9\times9$\,km, about the reach of our neighbourhoo
 A three-level U-Net that sees $44\times44$\,km reaches a test PR AUC of 0.280 $\pm$ 0.002. A four-level
 U-Net, whose 92--100\,px receptive field covers the whole patch for every pixel within 14\,px of the
 centre, where the fire is (Section~\ref{sec:dl_theory_rf}), reaches 0.344 $\pm$ 0.007 over three seeds against
-0.255 $\pm$ 0.002 for XGBoost \pending{paired test against XGBoost on the same fires: Priyanshu}. It now
+0.255 $\pm$ 0.002 for XGBoost, and it is ahead for every seed when both are scored on the same fires, by 0.080 to 0.094. It now
 also beats the CNN of Huot et al.\ (0.284), though that score comes from a different training pipeline.
 ROC AUC barely moves (0.934 to 0.935), while recall at 1\% false-positive rate rises from 0.399 to 0.459:
 the gain lies in the rare-fire, low-false-alarm region. The three- and four-level seeds ran on different

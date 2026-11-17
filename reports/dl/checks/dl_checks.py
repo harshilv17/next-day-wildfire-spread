@@ -52,8 +52,10 @@ def load_pred(name):
 
 
 def results():
-    path = CHECKS / "runs.csv" if (CHECKS / "runs.csv").exists() else DL / "results_dl.csv"
-    return pd.read_csv(path).set_index("model")
+    """Test metrics of every run: runs.csv (my runs) plus results_dl.csv (all team runs)."""
+    tables = [pd.read_csv(f) for f in (CHECKS / "runs.csv", DL / "results_dl.csv") if f.exists()]
+    res = pd.concat(tables).drop_duplicates("model").set_index("model")
+    return res
 
 
 def read_log(path):
@@ -203,7 +205,9 @@ def plt_setup():
 
 
 def seed_names(base):
-    return [base, f"{base}_s1", f"{base}_s2"]
+    """Seeds 0, 1, 2 of a run: base, base_s1, base_s2, or for names ending in _s0: stem_s0, stem_s1, stem_s2."""
+    stem = base[:-3] if base.endswith("_s0") else base
+    return [base, f"{stem}_s1", f"{stem}_s2"]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -284,7 +288,7 @@ def seeds_table(families):
         if len(names) < 2:
             continue
         sub = res.loc[names, METRICS]
-        rows.append({"model": fam, "n_seeds": len(names),
+        rows.append({"model": fam[:-3] if fam.endswith("_s0") else fam, "n_seeds": len(names),
                      **{f"{m}_mean": sub[m].mean() for m in METRICS}, **{f"{m}_std": sub[m].std() for m in METRICS}})
     return pd.DataFrame(rows)
 
@@ -459,7 +463,8 @@ def plot_validation(final):
     if (CHECKS / "learning_curve.csv").exists():
         lc = pd.read_csv(CHECKS / "learning_curve.csv")
         fig, ax = plt.subplots(figsize=(3.2, 2.3))
-        ax.plot(lc.share, lc.eval_pr_auc, "-o", ms=3.5, lw=1.5, color=COLORS["unet"], label=final[0])
+        run = re.sub(r"_frac\d+$", "", lc.run.iloc[0])  # the model the curve was measured on
+        ax.plot(lc.share, lc.eval_pr_auc, "-o", ms=3.5, lw=1.5, color=COLORS["unet"], label=run)
         p1 = ROOT / "reports" / "checks" / "learning_curve.csv"
         if p1.exists():
             x = pd.read_csv(p1)
@@ -499,7 +504,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("check", choices=["selfcheck", "sweep", "validate", "plots"])
     p.add_argument("--logs", default=str(CHECKS / "logs"), help="folder with train_dl logs ({name}.log)")
-    p.add_argument("--final", nargs="+", default=["unet_focal", "cnn_bce"], help="seed-0 runs of the final models")
+    p.add_argument("--final", nargs="+", default=["unet_final_s0", "cnn_bce"], help="seed-0 runs of the final models")
     a = p.parse_args()
     if a.check == "selfcheck":
         selfcheck()

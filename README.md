@@ -173,8 +173,8 @@ U-Net sees 44×44 km (0.280), and the 4-level U-Net's receptive field of 92-100 
 position) covers the whole 64×64 patch for every pixel within 14 px of the centre, where the fire is (0.344,
 above Huot et al.'s 0.284, which comes from a different training pipeline). ROC AUC barely moves, so
 the gain is in the rare-fire, low-false-alarm region. The 3- and 4-level seeds ran on different Apple GPUs;
-hardware alone moves test PR AUC by up to 0.02. The paired test of the final model against XGBoost on the same
-fire events is being rerun. Details: `reports/dl/architecture_ablation_summary.md`,
+hardware alone moves test PR AUC by up to 0.02. The final U-Net beats XGBoost for every seed on the same fire events (+0.080 to
++0.094), and (seed 0) also on unseen test locations (+0.092). Details: `reports/dl/architecture_ablation_summary.md`,
 `reports/dl/checks/loss_sweep.md` and the technical validation section of the paper.
 
 Feeding the U-Net the XGBoost probability as a 13th channel (hybrid, panel c above) brings no measurable gain

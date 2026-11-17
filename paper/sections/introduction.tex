@@ -37,7 +37,7 @@ neighbourhood features, ties XGBoost. A three-level U-Net~\cite{ronneberger2015}
 $44\times44$\,km reaches a test PR AUC of 0.280 $\pm$ 0.002. A four-level U-Net has a receptive field of
 92--100\,px: at three levels no pixel sees the whole $64\times64$\,km patch, at four levels every
 pixel within 14\,px of the centre, where the fire is, does (Section~\ref{sec:dl_theory_rf}). It reaches 0.344 $\pm$ 0.007 and beats the CNN of
-Huot et al.\ (0.284) \pending{paired test against XGBoost on the same fires: Priyanshu}. ROC AUC barely
+Huot et al.\ (0.284), and XGBoost for every seed when both are scored on the same fires. ROC AUC barely
 moves (0.934 to 0.935), so the gain lies in the rare-fire, low-false-alarm region. We choose the training
 loss and test data augmentation in controlled comparisons over three seeds, and check the three-level
 U-Net for seed and rerun noise, calibration, data size and location overlap.

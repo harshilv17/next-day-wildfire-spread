@@ -429,7 +429,7 @@ XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 \begin{itemize}
 \item More context, higher score: CNN 9$\times$9\,km ties XGBoost $\rightarrow$ 44$\times$44\,km 0.280 $\rightarrow$ whole patch from the centre 0.344
 \item ROC AUC barely moves: gain at low false-alarm rates
-\item Paired over the same fires vs XGBoost: \pending{Priyanshu, final model}
+\item Every U-Net seed beats XGBoost on the same fires: +0.080, +0.085, +0.094; also on unseen locations (seed 0): +0.092
 \end{itemize}
 \column{0.42\textwidth}
 \centering
@@ -445,10 +445,10 @@ XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 \column{0.56\textwidth}
 \footnotesize
 \begin{itemize}
-\item \textbf{Seeds:} networks vary 4--5$\times$ more than XGBoost (std 0.008--0.010 vs 0.002) $\rightarrow$ we report means
+\item \textbf{Seeds:} networks vary 3--5$\times$ more than XGBoost (std 0.007--0.010 vs 0.002) $\rightarrow$ we report means
 \item \textbf{Reruns:} the same seed on the same GPU is not the same model ($-0.022$ to $+0.013$)
-\item \textbf{Calibration:} focal loss flattens the probabilities; ranking is fine, but risk values need recalibration on eval
-\item \textbf{More data helps}, unlike XGBoost: eval PR AUC 0.194 at 5\% of train, 0.224 at 50\%, flat after
+\item \textbf{Calibration:} focal loss flattens the probabilities (top tenth: 2.3\% predicted, 10.6\% burn); ranking is fine, but risk values need recalibration on eval
+\item \textbf{More data helps}, unlike XGBoost (3-level U-Net): eval PR AUC 0.194 at 5\% of train, 0.224 at 50\%, flat after
 \end{itemize}
 \column{0.42\textwidth}
 \centering
@@ -460,7 +460,7 @@ XGBoost (Phase 1) & 0.255 $\pm$ .002 & 0.905 & 0.388 & 0.673 \\
 % ---------------------------------------------------------------- Piyush
 \begin{frame}{Phase 2: conclusion}
 \begin{itemize}
-\item \textbf{4-level U-Net with focal loss: 0.344 $\pm$ 0.007 PR AUC} against 0.255 for XGBoost and 0.284 for Huot et al.'s CNN \pending{paired test: Priyanshu}
+\item \textbf{4-level U-Net with focal loss: 0.344 $\pm$ 0.007 PR AUC} against 0.255 for XGBoost and 0.284 for Huot et al.'s CNN; ahead of XGBoost for every seed, paired over the same fires
 \item The context ladder: the CNN sees 9$\times$9\,km and ties XGBoost; the 3-level U-Net sees 44$\times$44\,km (0.280); the 4-level U-Net sees the whole patch from its centre (0.344)
 \item Small choices matter little: focal vs BCE +0.007, augmentation no gain from any tried mode, XGBoost as a 13th channel no gain; seed and rerun noise is as large ($\pm$0.01--0.02)
 \item Report means over seeds: GPU training is not reproducible run by run
