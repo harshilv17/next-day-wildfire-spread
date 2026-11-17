@@ -34,6 +34,8 @@
   title={In our project}, fonttitle=\small\bfseries, coltitle=white, colbacktitle=accent!85,
   toptitle=1pt, bottomtitle=1pt}
 \newcommand{\relevance}{\textit{Relevance:}}
+% Placeholder for numbers still being computed; must be gone before submission (grep for \pending).
+\newcommand{\pending}[1]{\textcolor{red}{[#1]}}
 
 % Clickable references, citations and links, plus a section outline in the PDF viewer (load last)
 \usepackage[colorlinks=true, linkcolor=accent, citecolor=accent, urlcolor=accent,
@@ -66,9 +68,11 @@ dataset authors report 0.225 for a random forest and 0.284 for a CNN, from a dif
 so these are reference points rather than a controlled comparison. Ablation and learning curves show that the
 spatial features carry the signal: tuning changes the score by only about 0.01, and 20 times less training
 data barely changes it. The model finds fire near the
-existing front but misses spread beyond 5\,km. In Phase~2, a U-Net trained on whole patches with focal loss
-reaches 0.275 $\pm$ 0.008 over three seeds and beats XGBoost for every seed on the same fires; loss
-choice and data augmentation change the score less than seed and rerun noise.
+existing front but misses spread beyond 5\,km. In Phase~2, a four-level U-Net trained on whole patches
+with focal loss, whose 92--100\,px receptive field covers the whole patch around the fire, reaches 0.344 $\pm$ 0.007 over three seeds,
+above XGBoost (0.255) and the CNN of Huot et al.\ (0.284) \pending{paired test against XGBoost on the same
+fires: Priyanshu}. PR AUC rises with the context the model sees, while loss choice and data augmentation
+change the score less than seed and rerun noise.
 
 \noindent\textit{Index terms:} wildfire spread, remote sensing, gradient boosting, class imbalance,
 precision-recall.

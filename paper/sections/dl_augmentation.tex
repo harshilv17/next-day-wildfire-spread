@@ -96,7 +96,8 @@ Taken literally, our rule picks \texttt{rot}: its mean eval PR AUC is 0.0042 abo
 standard deviation of 0.0038. We do not follow it here. A margin of 0.0004 over a standard deviation
 estimated from three seeds is not evidence of a gain, and on test \texttt{rot} is lower than none for every
 seed. The final U-Net is therefore trained without augmentation; flips alone would be an equally
-defensible choice, but they bring no measurable gain.
+defensible choice, but they bring no measurable gain. This ablation used the three-level U-Net; the final
+four-level model keeps \texttt{-{}-aug none}, and the ablation was not repeated at four levels.
 
 Turning the wind direction made no measurable difference in the one run that tests it: \texttt{flip\_rot}
 scores 0.274 with \texttt{th} turned and 0.273 without (paired difference $+0.001$, $-0.013$ to 0.013).
