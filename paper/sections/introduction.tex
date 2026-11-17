@@ -31,10 +31,10 @@ reaches a test PR AUC of 0.257 against 0.106 for persistence.
 The errors of this model point to what a per-pixel design cannot see: the shape of the fire front and
 spread beyond a fixed radius. In Phase~2 we therefore train models on the whole patch
 (Fig.~\ref{fig:dl_arch}): a small CNN that sees $9\times9$\,km around each pixel and a U-Net~\cite{ronneberger2015}
-that sees $44\times44$\,km. We choose the training loss and test data augmentation in controlled
-comparisons over three seeds, and check the result for seed and rerun noise, calibration, data size and
-location overlap. The U-Net with focal loss reaches a test PR AUC of 0.275 $\pm$ 0.008, ahead of XGBoost
-for every seed when both are scored on the same fires.
+whose final 4-level version sees the whole patch. We choose the training loss and test data augmentation in
+controlled comparisons over three seeds, and check the result for seed and rerun noise, calibration, data
+size and location overlap. The final U-Net with focal loss reaches a test PR AUC of 0.344 $\pm$ 0.007, ahead
+of XGBoost for every seed when both are scored on the same fires.
 
 \begin{figure*}[t]
 \centering
@@ -65,7 +65,7 @@ Our contributions are:
   false alarms around dying fires;
 \item data findings that matter for any model on this dataset: the patches are stored south-up,
   the raw export contains impossible values, and the test split contains duplicate patches;
-\item a U-Net with focal loss that beats the tuned XGBoost (0.275 $\pm$ 0.008 against 0.255 $\pm$ 0.002
+\item a U-Net with focal loss that beats the tuned XGBoost (0.344 $\pm$ 0.007 against 0.255 $\pm$ 0.002
   over three seeds), with the gain coming from spatial context rather than from the loss;
 \item controlled comparisons showing that the loss and data augmentation matter far less than seed and
   rerun noise: flips and rotations, with the wind direction turned to match the south-up grid, bring no

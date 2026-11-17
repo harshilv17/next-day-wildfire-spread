@@ -24,10 +24,10 @@ sees the patch only through fixed-radius summaries.
 Finally, we found that the patches are stored south-up, which the dataset does not state. Every
 direction-dependent feature, such as fire upwind, depends on this orientation.
 
-Phase~2 confirms that the missing ingredient was spatial context. A U-Net that sees $44\times44$\,km
-reaches a test PR AUC of 0.275 $\pm$ 0.008 over three seeds against 0.255 $\pm$ 0.002 for XGBoost, and
-it is ahead for every seed when both are scored on the same fires, by 0.012 to 0.027. A CNN that sees only
-$9\times9$\,km, about the reach of our neighbourhood features, ties XGBoost. Unlike XGBoost, the U-Net
+Phase~2 confirms that the missing ingredient was spatial context. The final 4-level U-Net, which sees the
+whole patch, reaches a test PR AUC of 0.344 $\pm$ 0.007 over three seeds against 0.255 $\pm$ 0.002 for
+XGBoost, and it is ahead for every seed when both are scored on the same fires, by 0.080 to 0.094. A CNN that
+sees only $9\times9$\,km, about the reach of our neighbourhood features, ties XGBoost. Unlike XGBoost, the U-Net
 also uses more training data, up to about half of the training set.
 
 The smaller choices matter much less. Focal loss beats weighted BCE by about 0.007, and none of the flips
