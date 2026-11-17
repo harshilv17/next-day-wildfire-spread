@@ -53,6 +53,7 @@ from src.train_dl import device, predict
 OUT_DIR = ROOT / "reports" / "dl"
 MODELS_DIR = ROOT / "models"
 PREDS_DIR = OUT_DIR / "preds"
+NOISE = 0.02  # largest same-seed rerun shift in test PR AUC (reports/dl/checks/reruns.csv)
 
 
 def load_run_meta(name):
@@ -301,34 +302,26 @@ This study completes Phase 2 Tasks 2 and 3:
 
 ## 3. Detailed Scientific Analysis
 
-### 1. Does the GBM probability channel improve U-Net performance?
-- **Baseline (Depth 3):** `unet_base` (0.2688) $\\to$ `unet_hybrid_base` ({h_base.get('test_pr_auc', 0):.4f}), a delta of **{delta_h_base:+.4f}**.
-- **Deep (Depth 4):** `unet_d4_w32` (0.3371) $\\to$ `unet_hybrid_d4` ({h_d4.get('test_pr_auc', 0):.4f}), a delta of **{delta_h_d4:+.4f}**.
-- Ingesting tabular GBM predictions directly into the convolutional feature stream allows the U-Net to combine non-linear tabular feature interactions (e.g. engineered dryness indices, wind alignment) with spatial multi-scale receptive fields.
+Noise reference: a same-seed rerun moves test PR AUC by up to {NOISE} (`reports/dl/checks/reruns.csv`), so single-seed differences smaller than that are not evidence either way.
 
-### 2. Does Depth 4 remain advantageous in the hybrid setting?
-- Yes. Depth 4 continues to demonstrate strong performance ({h_d4.get('test_pr_auc', 0):.4f} vs {h_base.get('test_pr_auc', 0):.4f}), reaffirming that deep spatial receptive fields (8×8 bottleneck covering 64 km) are complementary to the tabular probability signal.
+### 1. Does the GBM probability channel help the U-Net?
+- **Depth 3:** `unet_base` ({u_base.get('test_pr_auc', 0):.4f}) → `unet_hybrid_base` ({h_base.get('test_pr_auc', 0):.4f}), **{delta_h_base:+.4f}**.
+- **Depth 4:** `unet_d4_w32` ({u_d4.get('test_pr_auc', 0):.4f}) → `unet_hybrid_d4` ({h_d4.get('test_pr_auc', 0):.4f}), **{delta_h_d4:+.4f}**.
+- {"**No measurable effect.** Both changes are well inside run-to-run noise: the 13th channel adds nothing the U-Net does not already learn from the raw patch." if max(abs(delta_h_base), abs(delta_h_d4)) < NOISE else "At least one change exceeds run-to-run noise; confirm it with 3 seeds before drawing a conclusion."}
+- One possible reason: on train, 55% of patches belong to one linked fire event, so their GBM channel comes from a fold model fitted on only 6,741 patches, weaker than the GBM that produces the eval/test channel (`gbm_oof_metadata.json`). The U-Net may learn to trust the channel less than it deserves.
 
-### 3. Does the hybrid outperform both parent models?
-- Comparing `unet_hybrid_base` ({h_base.get('test_pr_auc', 0):.4f}) against parents `xgboost` (0.2565) and `unet_base` (0.2688):
-  - {"The hybrid model surpasses both individual parent models." if h_base.get('test_pr_auc', 0) > max(0.2565, 0.2688) else "The hybrid performs comparably within single-seed variance."}
+### 2. Does averaging with XGBoost help?
+- **`unet_base` + `xgboost`:** simple average {ens_base_avg.get('test_pr_auc', 0):.4f}, eval-tuned weighted average {ens_base_w.get('test_pr_auc', 0):.4f} (alpha = {ens_base_w.get('alpha', 0.5):.2f} on the U-Net), against {u_base.get('test_pr_auc', 0):.4f} for the U-Net alone: **{ens_base_w.get('test_pr_auc', 0) - u_base.get('test_pr_auc', 0):+.4f}**, within noise.
+- **`unet_d4_w32` + `xgboost`:** eval-tuned alpha = **{ens_d4_w.get('alpha', 0.5):.2f}**. {"With alpha = 1 XGBoost gets zero weight, so the weighted ensemble *is* the U-Net (identical scores) and is not reported as a separate model." if ens_d4_w.get('alpha', 0.5) >= 0.995 else ""} The forced 50/50 average scores {ens_d4_avg.get('test_pr_auc', 0):.4f}, {ens_d4_avg.get('test_pr_auc', 0) - u_d4.get('test_pr_auc', 0):+.4f} against the U-Net alone.
+- **`unet_hybrid_d4` + `xgboost`:** eval-tuned alpha = **{ens_h_d4_w.get('alpha', 0.5):.2f}**; same reading.
 
-### 4. Simple Averaging vs Weighted Averaging
-- For `unet_base` + `xgboost`:
-  - Simple average (50/50): **{ens_base_avg.get('test_pr_auc', 0):.4f}**
-  - Weighted average (alpha={ens_base_w.get('alpha', 0.5):.2f}): **{ens_base_w.get('test_pr_auc', 0):.4f}**
-- Tuning alpha on evaluation data identifies the optimal balance between the high-precision spatial representations of U-Net and the tabular calibration of XGBoost.
+### 3. Reading
+- XGBoost adds at most a within-noise gain to the weaker depth-3 U-Net, and nothing to the depth-4 U-Net: tuning on eval gives it zero weight, and forcing it in lowers PR AUC. Once the U-Net sees enough spatial context, the 35 engineered features are **redundant with what it learns, not complementary**.
+- Neither the hybrid channel nor the ensemble is used for the final model.
 
-### 5. Alpha Preference: Does the ensemble favor U-Net or XGBoost?
-- Optimal evaluation alpha for `unet_base` + `xgboost`: **alpha = {ens_base_w.get('alpha', 0.5):.2f}** (weight on U-Net).
-- Optimal evaluation alpha for `unet_d4` + `xgboost`: **alpha = {ens_d4_w.get('alpha', 0.5):.2f}** (weight on U-Net).
-- {"The ensemble leans towards the U-Net prediction while leveraging XGBoost for boundary refinement." if ens_base_w.get('alpha', 0.5) > 0.5 else "The ensemble balances both modalities almost equally."}
-
-### 6. Complementary Information vs Redundancy
-- The fact that post-hoc ensembling and 13-channel hybrid training both improve upon pure tabular XGBoost confirms that convolutional spatial hierarchy extracts spatial patterns (fire perimeter morphology, downwind corridors) that pixel-level tabular trees cannot capture.
-
-### 7. Single-Seed Limitations
-- All models were trained using seed 0. While large deltas (> 0.02) indicate genuine structural improvements, small variations (< 0.02) remain within stochastic noise bounds.
+### 4. Limitations
+- Single seed (0) and weighted BCE for every model here; the final model uses focal loss.
+- The depth-3 vs depth-4 gap is a single-seed result; see `architecture_ablation_summary.md` and the 3-seed final runs.
 
 ---
 
@@ -526,7 +519,8 @@ def main():
     # Add hybrid models and top ensembles to results_dl.csv
     export_models = ["unet_hybrid_base", "unet_hybrid_d4", "ens_base_xgb_weighted", "ens_d4_xgb_weighted", "ens_hybrid_d4_xgb_weighted"]
     for _, r in df.iterrows():
-        if r["model"] in export_models:
+        # an ensemble with alpha 0 or 1 is just one of its parents: don't list it as a separate model
+        if r["model"] in export_models and not (r["category"] == "Weighted Ensemble" and r["alpha"] in (0.0, 1.0)):
             new_dl_rows.append({
                 "model": r["model"],
                 "pr_auc": r["test_pr_auc"],

@@ -33,34 +33,26 @@ This study completes Phase 2 Tasks 2 and 3:
 
 ## 3. Detailed Scientific Analysis
 
-### 1. Does the GBM probability channel improve U-Net performance?
-- **Baseline (Depth 3):** `unet_base` (0.2688) $\to$ `unet_hybrid_base` (0.2703), a delta of **+0.0015**.
-- **Deep (Depth 4):** `unet_d4_w32` (0.3371) $\to$ `unet_hybrid_d4` (0.3346), a delta of **-0.0025**.
-- Ingesting tabular GBM predictions directly into the convolutional feature stream allows the U-Net to combine non-linear tabular feature interactions (e.g. engineered dryness indices, wind alignment) with spatial multi-scale receptive fields.
+Noise reference: a same-seed rerun moves test PR AUC by up to 0.02 (`reports/dl/checks/reruns.csv`), so single-seed differences smaller than that are not evidence either way.
 
-### 2. Does Depth 4 remain advantageous in the hybrid setting?
-- Yes. Depth 4 continues to demonstrate strong performance (0.3346 vs 0.2703), reaffirming that deep spatial receptive fields (8×8 bottleneck covering 64 km) are complementary to the tabular probability signal.
+### 1. Does the GBM probability channel help the U-Net?
+- **Depth 3:** `unet_base` (0.2688) → `unet_hybrid_base` (0.2703), **+0.0015**.
+- **Depth 4:** `unet_d4_w32` (0.3371) → `unet_hybrid_d4` (0.3346), **-0.0025**.
+- **No measurable effect.** Both changes are well inside run-to-run noise: the 13th channel adds nothing the U-Net does not already learn from the raw patch.
+- One possible reason: on train, 55% of patches belong to one linked fire event, so their GBM channel comes from a fold model fitted on only 6,741 patches, weaker than the GBM that produces the eval/test channel (`gbm_oof_metadata.json`). The U-Net may learn to trust the channel less than it deserves.
 
-### 3. Does the hybrid outperform both parent models?
-- Comparing `unet_hybrid_base` (0.2703) against parents `xgboost` (0.2565) and `unet_base` (0.2688):
-  - The hybrid model surpasses both individual parent models.
+### 2. Does averaging with XGBoost help?
+- **`unet_base` + `xgboost`:** simple average 0.2720, eval-tuned weighted average 0.2735 (alpha = 0.72 on the U-Net), against 0.2688 for the U-Net alone: **+0.0047**, within noise.
+- **`unet_d4_w32` + `xgboost`:** eval-tuned alpha = **1.00**. With alpha = 1 XGBoost gets zero weight, so the weighted ensemble *is* the U-Net (identical scores) and is not reported as a separate model. The forced 50/50 average scores 0.2956, -0.0415 against the U-Net alone.
+- **`unet_hybrid_d4` + `xgboost`:** eval-tuned alpha = **1.00**; same reading.
 
-### 4. Simple Averaging vs Weighted Averaging
-- For `unet_base` + `xgboost`:
-  - Simple average (50/50): **0.2720**
-  - Weighted average (alpha=0.72): **0.2735**
-- Tuning alpha on evaluation data identifies the optimal balance between the high-precision spatial representations of U-Net and the tabular calibration of XGBoost.
+### 3. Reading
+- XGBoost adds at most a within-noise gain to the weaker depth-3 U-Net, and nothing to the depth-4 U-Net: tuning on eval gives it zero weight, and forcing it in lowers PR AUC. Once the U-Net sees enough spatial context, the 35 engineered features are **redundant with what it learns, not complementary**.
+- Neither the hybrid channel nor the ensemble is used for the final model.
 
-### 5. Alpha Preference: Does the ensemble favor U-Net or XGBoost?
-- Optimal evaluation alpha for `unet_base` + `xgboost`: **alpha = 0.72** (weight on U-Net).
-- Optimal evaluation alpha for `unet_d4` + `xgboost`: **alpha = 1.00** (weight on U-Net).
-- The ensemble leans towards the U-Net prediction while leveraging XGBoost for boundary refinement.
-
-### 6. Complementary Information vs Redundancy
-- The fact that post-hoc ensembling and 13-channel hybrid training both improve upon pure tabular XGBoost confirms that convolutional spatial hierarchy extracts spatial patterns (fire perimeter morphology, downwind corridors) that pixel-level tabular trees cannot capture.
-
-### 7. Single-Seed Limitations
-- All models were trained using seed 0. While large deltas (> 0.02) indicate genuine structural improvements, small variations (< 0.02) remain within stochastic noise bounds.
+### 4. Limitations
+- Single seed (0) and weighted BCE for every model here; the final model uses focal loss.
+- The depth-3 vs depth-4 gap is a single-seed result; see `architecture_ablation_summary.md` and the 3-seed final runs.
 
 ---
 
