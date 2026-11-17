@@ -124,6 +124,7 @@ One run takes about 15-20 min on an Apple Silicon GPU (longer on an 8 GB machine
 Every option is a flag whose default keeps the earlier behaviour:
 
 ```bash
+python -m src.train_dl --model unet --depth 4 --loss focal --name unet_final_s0  # final U-Net (4 levels, focal)
 python -m src.train_dl --model unet --loss focal --name unet_focal               # U-Net, focal loss
 python -m src.train_dl --model cnn --name cnn_bce                                # CNN baseline (weighted BCE)
 python -m src.train_dl --model unet --loss focal --seed 1 --name unet_focal_s1   # another seed
@@ -159,13 +160,14 @@ Test split, mean ± standard deviation over seeds 0, 1 and 2. Bold = best per co
 
 | Model | PR AUC | ROC AUC | F1 | Recall @ 1% FPR | Recall @ 5% FPR |
 |---|---:|---:|---:|---:|---:|
-| **U-Net (focal)** | **0.275 ± 0.008** | **0.923 ± 0.003** | **0.349 ± 0.006** | **0.398 ± 0.004** | **0.711 ± 0.005** |
+| **U-Net, final (4 levels, focal)** | **0.344 ± 0.007** | **0.935 ± 0.009** | **0.399 ± 0.003** | **0.459 ± 0.003** | **0.783 ± 0.007** |
+| U-Net, 3 levels (focal) | 0.275 ± 0.008 | 0.923 ± 0.003 | 0.349 ± 0.006 | 0.398 ± 0.004 | 0.711 ± 0.005 |
 | CNN (weighted BCE) | 0.249 ± 0.010 | 0.878 ± 0.011 | 0.335 ± 0.008 | 0.378 ± 0.009 | 0.653 ± 0.006 |
 | XGBoost (Phase 1) | 0.255 ± 0.002 | 0.905 ± 0.001 | 0.330 ± 0.000 | 0.388 ± 0.001 | 0.673 ± 0.001 |
 
-The U-Net beats XGBoost for every seed when both are scored on the same fire events, and (seed 0) also on
-test locations not seen in training. Details: `reports/dl/checks/loss_sweep.md` and the technical validation
-section of the paper.
+The final U-Net beats XGBoost for every seed when both are scored on the same fire events (+0.080 to +0.094),
+and (seed 0) also on test locations not seen in training (+0.092). Details: `reports/dl/checks/` and the
+technical validation section of the paper.
 
 **Augmentation** (`--aug`, focal U-Net, all runs on one Apple M3; mean ± std over seeds 0-2):
 
