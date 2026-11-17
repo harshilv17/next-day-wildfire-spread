@@ -269,7 +269,7 @@ All experiments were executed on Apple Silicon MPS with strictly identical train
 ### 1. Does increasing depth improve performance?
 - Comparing **Depth 2 (104k params)** $\to$ **Depth 3 (470k params)** $\to$ **Depth 4 (1.93M params)** at Base Width 32:
   - Test PR AUC: Depth 2 ({d2_row['test_pr_auc']:.4f}), Depth 3 ({base_row['test_pr_auc']:.4f}), Depth 4 ({d4_row['test_pr_auc']:.4f}).
-  - Receptive field of one output pixel (measured from input gradients): **18×18 px** at depth 2, **44×44 px** at depth 3, **92×92 px** at depth 4. Only depth 4 lets every output pixel see the whole 64×64 km patch.
+  - Receptive field of one output pixel (measured from input gradients): **18×18 px** at depth 2, **44×44 px** at depth 3, **92–100 px** at depth 4 (depending on the pixel's position relative to the pooling grid). At depth 3 no output pixel sees the whole 64×64 km patch; at depth 4 every pixel within 14 px of the patch centre, where the fire is, does.
   - **Depth 2 (-0.0103 vs base):** within run-to-run noise. Its 18 km reach is about that of the Phase 1 neighbourhood features.
   - **Depth 4 (+0.0683 vs base):** Eval PR AUC 0.2188 $\to$ 0.3008 (+0.0820), test PR AUC 0.2688 $\to$ 0.3371 (+0.0683), far outside run-to-run noise ($\le 0.02$). Confirmed with 3 seeds and focal loss (Section 5).
 

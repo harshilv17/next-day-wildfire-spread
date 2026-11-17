@@ -1,0 +1,119 @@
+% Phase 2 methodology (Harshil)
+% Code: src/dl_data.py (loader, normalisation), src/dl_models.py (CNN, U-Net), src/dl_losses.py,
+% src/train_dl.py (training loop), src/dl_gbm_oof.py (hybrid input), src/evaluate.py (metrics, shared with
+% Phase 1). Parameter counts from build_model; numbers from reports/dl/results_dl.csv.
+
+\section{Deep Learning Methodology}
+\label{sec:dl_method}
+
+Phase~2 keeps the task, the data, the splits and the metrics of Phase~1 (Section~\ref{sec:method}) and
+replaces the per-pixel model with a network that maps a whole patch to a whole probability map. Everything
+that could make the two phases differ for reasons other than the model is held fixed: the same official
+split, the same masking of label $-1$, the same \texttt{evaluate()} function, and thresholds chosen on
+eval only.
+
+\subsection{Data loader and normalisation}
+
+Each sample is the full $64\times64$ patch: an input tensor of shape $(12, 64, 64)$ and a label map of
+shape $(64, 64)$ with values in $\{-1, 0, 1\}$. We use all 14\,979 / 1\,877 / 1\,689 train / eval / test
+patches. There is no pixel subsampling, unlike the 1:5 subsampled pixel tables of Phase~1, because a
+convolutional network needs every pixel of the patch as context.
+
+The raw export contains impossible values (for example a wind direction of $-505\,870^\circ$), and the
+channels differ in scale by several orders of magnitude. Each of the 11 continuous channels $c$ is
+therefore clipped to its 0.5th and 99.5th percentile on the training split, $[\ell_c, u_c]$, and then
+standardised:
+\begin{equation}
+\tilde x_c = \frac{\operatorname{clip}(x_c, \ell_c, u_c) - \mu_c}{\sigma_c},
+\label{eq:dl_norm}
+\end{equation}
+where $\mu_c$ and $\sigma_c$ are the mean and standard deviation of the clipped training values. All
+statistics come from the training split only and are applied unchanged to eval and test. The fire mask
+\texttt{PrevFireMask} is already in $\{-1, 0, 1\}$ and is left as it is. Labels of $-1$ are kept in the
+tensors and removed inside every loss and metric. The training loader shuffles patches with a seeded
+generator, and eval and test are read in a fixed order. Augmentation (Section~\ref{sec:dl_aug}), when
+used, is applied to training batches only.
+
+\subsection{Models}
+
+Both models map $(B, C, 64, 64)$ to $(B, 1, 64, 64)$ logits, one per pixel (Fig.~\ref{fig:dl_arch}).
+\begin{itemize}
+\item \textbf{CNN.} Four $3\times3$ convolutions with batch normalisation and ReLU, 32 channels, no
+downsampling, and a $1\times1$ output convolution (31\,393 parameters). Its receptive field is
+$9\times9$\,px, about the reach of the Phase~1 neighbourhood features, so it tests whether a learned
+local filter beats engineered local features.
+\item \textbf{U-Net}~\cite{ronneberger2015}. An encoder of $D$ levels: each level is a block of two
+$3\times3$ convolutions with batch normalisation and ReLU, and levels are joined by $2\times2$ max
+pooling. The channel count doubles at each level from a base width $W$. The decoder upsamples with
+$2\times2$ transposed convolutions, concatenates the encoder features of the same resolution (skip
+connections), applies a block, and ends in a $1\times1$ convolution. The ablation varies $D \in
+\{2, 3, 4\}$ and $W \in \{16, 32, 64\}$. The final model has $D = 4$, $W = 32$ (1\,929\,601 parameters;
+469\,761 at $D = 3$).
+\end{itemize}
+Both are fully convolutional, so the same weights apply at every pixel and any input size works.
+
+\subsection{Training}
+
+Training minimises a loss over the labelled pixels of each batch: weighted BCE, focal loss or BCE plus
+Dice (Section~\ref{sec:dl_loss}). The fire weight $w = 90.0$ is the no-fire to fire ratio of the training
+pixels. We use Adam~\cite{kingma2015} with learning rate $10^{-3}$, batch size 32 and at most 30 epochs.
+After every epoch the model predicts the eval split, and eval PR AUC is computed over its labelled pixels.
+The best epoch is saved, and training stops after 5 epochs without improvement~\cite{prechelt1998}. The
+saved model then predicts eval and test. The decision threshold is the one that maximises F1 on eval, and
+it is applied unchanged to test. Test scores go through the Phase~1 \texttt{evaluate()} function into a
+separate results file, so Phase~1 results are never overwritten. Every run fixes the Python, NumPy and
+PyTorch seeds and the loader seed. Section~\ref{sec:dl_validation} reports how much results still move
+between seeds and machines (Apple-silicon GPUs and an NVIDIA T4).
+
+\begin{table}[t]
+\centering
+\caption{Final Phase~2 model. Depth and loss differ from the defaults of \texttt{src/train\_dl.py}.}
+\label{tab:dl_final}
+\footnotesize
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{l>{\raggedright\arraybackslash}p{5.9cm}}
+\toprule
+\rowcolor{tblhead}
+\textbf{Setting} & \textbf{Value} \\
+\midrule
+Input & 12 channels, $64\times64$, train-only clip and z-score \\
+Architecture & U-Net, 4 levels, base width 32, 1.93\,M parameters \\
+Loss & focal, $\gamma = 2$, fire weight 90.0, label $-1$ masked \\
+Optimiser & Adam, learning rate $10^{-3}$, batch size 32 \\
+Stopping & eval PR AUC, patience 5, at most 30 epochs \\
+Augmentation & none \\
+Threshold & best F1 on eval \\
+Seeds & 0, 1, 2 (reported as mean $\pm$ std) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Hybrid input}
+
+The hybrid U-Net adds the Phase~1 XGBoost fire probability as a 13th input channel. The XGBoost
+hyperparameters are those of Phase~1. On eval and test, the channel comes from XGBoost fitted on the whole
+Phase~1 training pixel table. On the training patches, it comes from five out-of-fold models (Eq.~\ref{eq:oof}),
+with folds grouped by fire event, so no fold model has seen the fire it predicts. Events are found as in
+Phase~1, by linking patches that share a $16\times16$ elevation block. The channel is standardised with its
+training mean and standard deviation. The probability ensembles average U-Net and XGBoost probabilities
+with a weight tuned on eval.
+
+\subsection{Experiments}
+
+Each experiment changes one setting of the default model (U-Net, 3 levels, width 32) and keeps the
+rest. The augmentation runs use focal loss, chosen by the loss sweep, and the other ablations use
+weighted BCE:
+\begin{itemize}
+\item \textbf{baseline}: CNN against U-Net;
+\item \textbf{loss}: weighted BCE, focal or BCE + Dice, 3 seeds (Section~\ref{sec:dl_loss});
+\item \textbf{augmentation}: none, flips, rotations or both, with the wind direction turned, 3 seeds
+(Section~\ref{sec:dl_aug});
+\item \textbf{architecture}: depth 2/3/4 at width 32, and width 16/32/64 at depth 3;
+\item \textbf{channel groups}: drop weather, vegetation, terrain, fire or population;
+\item \textbf{crop}: train on centre $32\times32$ crops, score on full patches;
+\item \textbf{hybrid}: with and without the XGBoost channel, and probability ensembles.
+\end{itemize}
+The architecture, channel, crop and hybrid runs use one seed, so differences below 0.02, the largest
+shift between same-seed reruns, are treated as noise. The final model combines the winning settings and
+is retrained on three seeds (Table~\ref{tab:dl_final}). All choices are made on eval. Test is reported
+but never used to choose.

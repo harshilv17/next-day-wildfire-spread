@@ -1,0 +1,93 @@
+% Deep learning theory (Harshil)
+% Receptive fields measured from input gradients of src/dl_models.py (random weights, one output pixel,
+% all positions in a 16-pixel range). Numbers from reports/dl/results_dl.csv, reports/dl/gbm_oof_metadata.json,
+% reports/dl/hybrid_ensemble_results.csv and reports/dl/architecture_ablation_summary.md.
+
+\section{Deep Learning Theory}
+\label{sec:dl_theory}
+
+This section explains four results of Phase~2: why depth helps and width does not, why a model trained on
+crops fails on full patches, why rotations do not help, and why the Phase~1 model adds nothing to the
+U-Net.
+
+\subsection{Receptive field}
+\label{sec:dl_theory_rf}
+
+An output pixel of a CNN depends only on a window of the input, its receptive field. For a stack of
+layers with kernel size $k_l$ and stride $s_l$, its width is
+\begin{equation}
+r_L = 1 + \sum_{l=1}^{L} (k_l - 1) \prod_{m=1}^{l-1} s_m .
+\label{eq:rf}
+\end{equation}
+Each $3\times3$ convolution adds $2\,J_l$ pixels, where $J_l = \prod_{m<l} s_m$ is the spacing of its
+inputs in pixels. A convolution at U-Net level $j$, after $j-1$ halvings, therefore adds $2^{j}$ pixels, so
+each extra level roughly doubles the reach. Measured from input gradients, the field is 9\,px for our
+CNN (four convolutions, no downsampling), 18\,px for a U-Net with 2 levels, 44\,px with 3 levels and
+92--100\,px with 4 levels; the last depends on the pixel's position relative to the pooling grid. A
+patch is 64\,px wide. At depth 3 no output pixel sees the whole patch. At depth 4, every pixel within
+14\,px of the centre, where the fire is, does.
+
+The theoretical field overstates what the model uses. Luo et al.~\cite{luo2016} show that the effective
+receptive field is close to Gaussian and that its width grows only as $\sqrt{n}$ for $n$ stacked
+convolutions at one resolution, whereas downsampling scales it directly. Width adds parameters at every
+level but no reach. This matches our ablation: at almost the same parameter count, 4 levels at width 32
+(1.93\,M) beat 3 levels at width 64 (1.87\,M) by 0.065 test PR AUC in single runs, and the 3-seed
+comparison of depth 4 and depth 3 gives 0.344 $\pm$ 0.007 against 0.280 $\pm$ 0.002. The gain is at
+low false-alarm rates (recall at 1\% FPR 0.399 $\to$ 0.459, ROC AUC unchanged). This is where a pixel
+model fails. Phase~1 missed most fire more than 5\,km from the current front. A pixel's fire
+risk there depends on the shape of the front and on wind and fuel over tens of kilometres, which
+fixed-window features summarise only coarsely.
+
+\subsection{Translation equivariance and input size}
+
+A convolution commutes with shifts: if $T_v$ moves an image by $v$ pixels, then
+$f(T_v\mathbf{x}) = T_v f(\mathbf{x})$ away from the borders. The same weights are applied everywhere,
+so a fully convolutional network~\cite{long2015} accepts any input size. This makes it possible to train
+on $32\times32$ crops and predict on $64\times64$ patches. It does not make the result good. In our
+centre-crop run (0.172 against 0.269, single runs) three things shift between training and test:
+\begin{itemize}
+\item the share of fire, about 3 times higher in the patch centre;
+\item the zero-padded borders, which now lie in the middle of the field;
+\item the statistics that batch normalisation~\cite{ioffe2015} learned on crops.
+\end{itemize}
+Equivariance guarantees that the computation transfers, not that the training distribution does.
+
+\subsection{Rotations and the wind field}
+
+Flips and $90^\circ$ rotations form a group of 8 symmetries of the square grid. A group-equivariant
+CNN~\cite{cohen2016} satisfies $f(g\mathbf{x}) = g f(\mathbf{x})$ for every symmetry $g$ by
+construction; augmentation only encourages it. On our data the symmetry has two problems. First, the
+wind direction $\theta$ is a direction, not a pixel value: a quarter turn $k$ of the grid must also turn
+the wind, $\theta \to \theta + 90^\circ k$ on our south-up grid (Section~\ref{sec:dl_aug}). Second, the
+data are not symmetric: north and south differ in sun exposure and terrain aspect, and U.S.\ fires have
+prevailing wind directions. A rotated patch is a plausible image but an unlikely fire. This is why flips
+and rotations did not help, and why we did not build the symmetry into the architecture.
+
+\subsection{Stacking, leakage and ensembles}
+
+The hybrid U-Net receives the XGBoost probability $\hat p(\mathbf{x})$ as a 13th channel. On the
+training patches this channel has to come from models that did not see them~\cite{wolpert1992}: with
+$K$ folds and patch $i$ in fold $g(i)$,
+\begin{equation}
+\hat p_i = f_{-g(i)}(\mathbf{x}_i),
+\label{eq:oof}
+\end{equation}
+where $f_{-g}$ is fitted without fold $g$. If neighbouring patches of the same fire fall into different
+folds, $f_{-g(i)}$ has still seen that fire, and $\hat p_i$ looks more reliable on training data than on
+test data. The U-Net then learns to over-trust it. Grouping the folds by fire event lowered the training
+out-of-fold PR AUC from 0.306 to 0.268, against 0.207 on eval and 0.257 on test.
+
+Even without leakage, the channel helped by less than 0.003. The simplest explanation is redundancy:
+everything XGBoost knows comes from the same 12 channels the U-Net reads, through features computed over
+windows that the depth-4 U-Net already covers. The ensemble
+$p = \alpha\, p_{\text{U-Net}} + (1-\alpha)\, p_{\text{XGB}}$ says the same thing. With $\alpha$ tuned
+on eval, depth 3 gets $\alpha = 0.72$ and gains 0.005 (within noise), and depth 4 gets $\alpha = 1$:
+XGBoost receives no weight. Forcing $\alpha = 0.5$ lowers depth-4 PR AUC by 0.042.
+
+\subsection{Optimisation and regularisation}
+
+All models are trained with Adam~\cite{kingma2015} at a learning rate of $10^{-3}$ and batch size 32, with
+batch normalisation after every convolution~\cite{ioffe2015}. There is no dropout or weight decay. Early
+stopping~\cite{prechelt1998} is the regulariser: training stops after 5 epochs without a gain in eval PR
+AUC, and the best epoch is kept (epochs 9--16 for the final model). Eval PR AUC peaks while the training
+loss is still falling, so without early stopping the models overfit.
