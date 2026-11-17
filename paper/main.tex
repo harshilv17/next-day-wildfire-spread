@@ -66,7 +66,9 @@ dataset authors report 0.225 for a random forest and 0.284 for a CNN, from a dif
 so these are reference points rather than a controlled comparison. Ablation and learning curves show that the
 spatial features carry the signal: tuning changes the score by only about 0.01, and 20 times less training
 data barely changes it. The model finds fire near the
-existing front but misses spread beyond 5\,km, which motivates a spatial deep model in Phase~2.
+existing front but misses spread beyond 5\,km. In Phase~2, a U-Net trained on whole patches with focal loss
+reaches 0.275 $\pm$ 0.008 over three seeds and beats XGBoost for every seed on the same fires; loss
+choice and data augmentation change the score less than seed and rerun noise.
 
 \noindent\textit{Index terms:} wildfire spread, remote sensing, gradient boosting, class imbalance,
 precision-recall.
@@ -77,6 +79,9 @@ precision-recall.
 \input{sections/dataset_eda}
 \input{sections/methodology}
 \input{sections/results}
+\input{sections/dl_loss_sweep}
+\input{sections/dl_augmentation}
+\input{sections/dl_validation}
 \input{sections/conclusion}
 \input{sections/appendix}
 

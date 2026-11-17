@@ -1,0 +1,26 @@
+unet_focal_aug_flip_rot_s1: unet {'width': 32, 'depth': 3}, loss focal, aug flip_rot on mps, pos_weight=90.0
+epoch  1  train loss 0.1989  eval PR AUC 0.1706
+epoch  2  train loss 0.1720  eval PR AUC 0.1808
+epoch  3  train loss 0.1629  eval PR AUC 0.1950
+epoch  4  train loss 0.1555  eval PR AUC 0.1926
+epoch  5  train loss 0.1521  eval PR AUC 0.1973
+epoch  6  train loss 0.1492  eval PR AUC 0.2000
+epoch  7  train loss 0.1473  eval PR AUC 0.1989
+epoch  8  train loss 0.1460  eval PR AUC 0.2115
+epoch  9  train loss 0.1433  eval PR AUC 0.2167
+epoch 10  train loss 0.1399  eval PR AUC 0.2143
+epoch 11  train loss 0.1390  eval PR AUC 0.2143
+epoch 12  train loss 0.1374  eval PR AUC 0.2121
+epoch 13  train loss 0.1370  eval PR AUC 0.2107
+epoch 14  train loss 0.1376  eval PR AUC 0.2196
+epoch 15  train loss 0.1360  eval PR AUC 0.2159
+epoch 16  train loss 0.1354  eval PR AUC 0.2159
+epoch 17  train loss 0.1349  eval PR AUC 0.2136
+epoch 18  train loss 0.1332  eval PR AUC 0.2238
+epoch 19  train loss 0.1335  eval PR AUC 0.2141
+epoch 20  train loss 0.1331  eval PR AUC 0.2153
+epoch 21  train loss 0.1325  eval PR AUC 0.2123
+epoch 22  train loss 0.1310  eval PR AUC 0.2210
+epoch 23  train loss 0.1311  eval PR AUC 0.2125
+early stop, best eval PR AUC 0.2238
+model=unet_focal_aug_flip_rot_s1, pr_auc=0.2720, roc_auc=0.9265, precision=0.2725, recall=0.4962, f1=0.3518, threshold=0.7305041551589966, best_f1=0.3635, best_f1_threshold=0.7530845999717712, recall_at_1fpr=0.3969, recall_at_5fpr=0.7012, n_pixels=6727699, fire_rate=0.0125
