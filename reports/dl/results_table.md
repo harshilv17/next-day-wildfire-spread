@@ -35,7 +35,34 @@ Test patches grouped into 257 events (crops of the same place, matched on elevat
 | U-Net depth 3 (focal) | 0.269 | 0.236 | 0.152 | 0.225 | 0.247 | 0.319 | 0.600 |
 | U-Net final (depth 4, focal) | **0.338** | **0.506** | **0.494** | **0.587** | **0.419** | **0.635** | **0.988** |
 
-95% bootstrap intervals over events (1,000 resamples, `reports/dl/checks/ci_events.csv`):
+Final U-Net, 95% intervals over fire events (1,000 resamples with `dl_checks.py`, seed 0). Pooled PR AUC:
+
+| Model | PR AUC | 2.5% | 97.5% |
+|---|---:|---:|---:|
+| unet_final_s0 | 0.3376 | 0.2928 | 0.3854 |
+| unet_final_s1 | 0.3429 | 0.3042 | 0.3860 |
+| unet_final_s2 | 0.3514 | 0.2986 | 0.4067 |
+| xgboost | 0.2565 | 0.1921 | 0.3204 |
+| persistence | 0.1065 | 0.0591 | 0.1611 |
+
+Paired difference against xgboost on the same resamples:
+
+| Model | b | diff | lo95 | hi95 | share_a_better |
+|---|---:|---:|---:|---:|---:|
+| unet_final_s0 | xgboost | 0.0811 | 0.0594 | 0.1129 | 1.0000 |
+| unet_final_s1 | xgboost | 0.0864 | 0.0608 | 0.1211 | 1.0000 |
+| unet_final_s2 | xgboost | 0.0949 | 0.0800 | 0.1168 | 1.0000 |
+
+Mean PR AUC over events (each event once), events resampled:
+
+| Model | mean over events | lo95 | hi95 | diff vs xgboost | diff lo95 | diff hi95 | events better |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| xgboost | 0.187 | 0.161 | 0.215 | 0.000 | 0.000 | 0.000 | 0.000 |
+| unet_final_s0 | 0.506 | 0.480 | 0.535 | 0.318 | 0.288 | 0.352 | 0.921 |
+| unet_final_s1 | 0.510 | 0.483 | 0.537 | 0.322 | 0.292 | 0.354 | 0.929 |
+| unet_final_s2 | 0.493 | 0.465 | 0.522 | 0.305 | 0.274 | 0.338 | 0.929 |
+
+Depth-3 U-Net and CNN, 95% intervals over events (Priyanshu, `reports/dl/checks/ci_events.csv`; his XGBoost row is a refit, 0.2576):
 
 | Model | PR AUC | 2.5% | 97.5% |
 |---|---:|---:|---:|
